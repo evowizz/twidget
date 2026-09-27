@@ -112,8 +112,4 @@ class BriefWidgetArtworkRendererTest {
         )
     }
 
-    @Test
-    fun oneUiFollowerEmphasisUsesBoldRatherThanExtraBold() {
-        assertEquals(700, WidgetArtworkRenderer.ONE_UI_EMPHASIS_WEIGHT)
-    }
 }

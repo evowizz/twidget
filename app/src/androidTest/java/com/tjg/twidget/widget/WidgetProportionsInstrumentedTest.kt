@@ -120,8 +120,8 @@ class WidgetProportionsInstrumentedTest {
                     super.drawText(text, x, y, paint)
                 }
             }
-            WidgetArtworkRenderer.drawFollowerCount(canvas, words, paints,
-                width - 24f, height - 46f, 12f, 6f, 4f)
+            FollowerHeroLayout(words) { index, _ -> paints.getValue(words[index]) }
+                .draw(canvas, width - 24f, height - 46f, 12f, 6f, 4f)
             val advances = baselines.distinct().zipWithNext { a, b -> b - a }
             assertTrue("Exercise multiple wrapped lines", advances.size >= 2)
             assertTrue("Every baseline must be evenly spaced: $baselines",
@@ -191,7 +191,7 @@ class WidgetProportionsInstrumentedTest {
         }
     }
 
-    @Test fun containedDeltaInkIsCentredInBadge() {
+    @Test fun deltaIsReadableHeroTextAboveTheFooter() {
         for (density in listOf(160, 480)) {
             val context = base.createConfigurationContext(Configuration(base.resources.configuration).apply {
                 densityDpi = density
@@ -200,38 +200,27 @@ class WidgetProportionsInstrumentedTest {
             })
             val scale = density / 160
             for (font in listOf(TwidgetStore.FONT_ONE_UI_SANS, TwidgetStore.FONT_GOOGLE_SANS_FLEX, TwidgetStore.FONT_SYSTEM)) {
-                for (dark in listOf(false, true)) for (delta in listOf(15L, -3L, 123456789L)) {
-                    val settings = WidgetPreviews.settings(WidgetStyle.MATERIAL).copy(fontFamily = font,
-                        showDelta = true, language = "en", containedFooter = true)
+                for (style in WidgetStyle.entries) for (contained in listOf(false, true))
+                    for (dark in listOf(false, true)) for (delta in listOf(15L, -3L, 123456789L)) {
+                    val settings = WidgetPreviews.settings(style).copy(fontFamily = font,
+                        showDelta = true, language = "en", containedFooter = contained)
                     val bitmap = WidgetArtworkRenderer.render(context, 352 * scale, 176 * scale,
                         ProfileStats("Test", "twidget", 7671, 0, 0, 0), settings,
                         TwidgetWidget.LAYOUT_MODE_LARGE, dark, delta)
-                    val inkColor = WidgetColors.resolve(context, settings, dark).background
-                    val badgeColor = if (delta < 0) Color.rgb(229, 83, 75) else Color.rgb(0, 170, 86)
-                    var badgeArea: android.graphics.Rect? = null
-                    fun bounds(color: Int): android.graphics.Rect {
-                        val result = android.graphics.Rect()
-                        for (y in bitmap.height - 80 * scale until bitmap.height) {
-                            for (x in bitmap.width / 2 until bitmap.width) {
-                                val pixel = bitmap.getPixel(x, y)
-                                // Thin glyphs at mdpi may consist entirely of antialiased pixels.
-                                val distanceFromBadge = maxOf(kotlin.math.abs(Color.red(pixel) - Color.red(badgeColor)),
-                                    kotlin.math.abs(Color.green(pixel) - Color.green(badgeColor)),
-                                    kotlin.math.abs(Color.blue(pixel) - Color.blue(badgeColor)))
-                                val matches = if (color == badgeColor) pixel == badgeColor
-                                    else Color.alpha(pixel) == 255 && distanceFromBadge > 15 &&
-                                        badgeArea!!.contains(x, y)
-                                if (matches) result.union(x, y, x + 1, y + 1)
-                            }
+                    val deltaColor = if (delta < 0) Color.rgb(229, 83, 75) else Color.rgb(0, 170, 86)
+                    val ink = android.graphics.Rect()
+                    for (y in 0 until bitmap.height) for (x in 0 until bitmap.width) {
+                        val pixel = bitmap.getPixel(x, y)
+                        if (Color.alpha(pixel) > 128 && Color.red(pixel) == Color.red(deltaColor) &&
+                            Color.green(pixel) == Color.green(deltaColor) && Color.blue(pixel) == Color.blue(deltaColor)) {
+                            ink.union(x, y, x + 1, y + 1)
                         }
-                        assertFalse("Visible badge/text for $font / $delta", result.isEmpty)
-                        return result
                     }
-                    val badge = bounds(badgeColor)
-                    badgeArea = badge
-                    val ink = bounds(inkColor)
-                    assertEquals("Horizontal centre: $font / $delta", badge.exactCenterX(), ink.exactCenterX(), 1.5f)
-                    assertEquals("Vertical centre: $font / $delta", badge.exactCenterY(), ink.exactCenterY(), 1.5f)
+                    val pad = if (style == WidgetStyle.MATERIAL && !dark) 10 else 12
+                    val footerHeight = if (style == WidgetStyle.MATERIAL && contained) 20 else 14
+                    assertFalse("Visible hero delta for $font / $delta", ink.isEmpty)
+                    assertTrue("Delta uses hero text size: $ink", ink.height() >= 14 * scale)
+                    assertTrue("Delta clears footer: $ink", ink.bottom <= (176 - pad - footerHeight - 8) * scale)
                     bitmap.recycle()
                 }
             }

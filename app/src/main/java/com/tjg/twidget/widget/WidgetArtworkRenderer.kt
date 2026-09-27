@@ -5,7 +5,6 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.graphics.Rect
 import android.graphics.RectF
 import androidx.core.content.ContextCompat
 import com.tjg.twidget.R
@@ -16,8 +15,6 @@ import com.tjg.twidget.data.TwidgetWidgetSettings
 import com.tjg.twidget.ui.TwidgetFonts
 
 object WidgetArtworkRenderer {
-    internal const val ONE_UI_EMPHASIS_WEIGHT = 700
-
     fun render(
         context: Context,
         widthPx: Int,
@@ -49,36 +46,24 @@ object WidgetArtworkRenderer {
         }
         val deltaText = if (!settings.showDelta || delta == 0L) "" else TwidgetStore.signedNumber(delta, AppLocales.resolve(settings.language))
         val deltaColor = if (delta < 0) Color.rgb(229, 83, 75) else Color.rgb(0, 170, 86)
-        val deltaPaint = textPaint(context, settings, deltaColor, bold = false).apply {
-            textSize = (if (contained) 10f else 14f) * density
-            applyWidgetTypeface(context, settings.fontFamily, 400, 57, 100)
-        }
-        // Normal badges are 20dp. Longer, dynamic deltas get enough room to stay legible.
-        val badgeSize = if (contained && deltaText.isNotEmpty())
-            maxOf(20f * density, deltaPaint.measureText(deltaText) + 6f * density) else 0f
-        val footerHeight = if (contained) maxOf(20f * density, badgeSize) else 14f * density
+        val footerHeight = (if (contained) 20f else 14f) * density
         val textMaxWidth = width - pad * 2
         val textMaxHeight = height - pad * 2 - footerHeight - 8f * density
         val locale = AppLocales.resolve(settings.language)
         val localizedContext = AppLocales.wrap(context, settings.language)
-        val words = TwidgetWidget.followersInWords(stats.followersCount, locale)
+        val countWords = TwidgetWidget.followersInWords(stats.followersCount, locale)
             .split(Regex("\\s+"))
-            .filter { it.isNotBlank() } + localizedContext.getString(R.string.followers)
-        // Axis setup constructs a native variable typeface. Keep one paint per
-        // distinct word throughout fitting and drawing instead of rebuilding it
-        // hundreds of times for every resize. Paints remain local to this render.
-        val wordPaints = words.distinct().associateWith { wordPaint(context, settings, it, primary, secondary) }
+            .filter { it.isNotBlank() }
+        val words = countWords + localizedContext.getString(R.string.followers) + listOfNotNull(deltaText.takeIf { it.isNotEmpty() })
         val gap = wordSpacing(context, textMaxWidth)
-        val lineGap = 4f * density
-        drawFollowerCount(canvas, words, wordPaints, textMaxWidth, textMaxHeight, pad, gap, lineGap)
+        val hero = followerHero(context, settings, words, countWords.size, primary, secondary, deltaColor)
+        hero.draw(canvas, textMaxWidth, textMaxHeight, pad, gap, 4f * density)
 
         val handle = "@${stats.userName}"
         val footerCenterY = height - pad - footerHeight / 2f
         val logoSize = context.resources.getDimension(R.dimen.widget_footer_logo_size)
         val chipPadding = if (contained) 6f * density else 0f
-        val deltaWidth = if (deltaText.isEmpty()) 0f else if (contained) badgeSize else deltaPaint.measureText(deltaText)
-        val handleMaxWidth = (textMaxWidth - logoSize - 6f * density - chipPadding * 2 - deltaWidth -
-            if (deltaText.isEmpty()) 0f else 8f * density).coerceAtLeast(1f)
+        val handleMaxWidth = (textMaxWidth - logoSize - 6f * density - chipPadding * 2).coerceAtLeast(1f)
         shrinkToFit(footerPaint, handle, handleMaxWidth)
         val handleX = pad + chipPadding + logoSize + 6f * density
         if (contained) {
@@ -91,140 +76,55 @@ object WidgetArtworkRenderer {
         drawLogo(context, canvas, settings, footerColor, pad + chipPadding, footerCenterY - logoSize / 2f, logoSize)
         val footerBaseline = footerCenterY - (footerPaint.fontMetrics.ascent + footerPaint.fontMetrics.descent) / 2f
         canvas.drawText(handle, handleX, footerBaseline, footerPaint.apply { color = footerColor })
-        if (deltaText.isNotEmpty()) {
-            if (contained) {
-                val left = width - pad - badgeSize
-                val badgeBounds = Rect(left.toInt(), (footerCenterY - badgeSize / 2f).toInt(),
-                    (left + badgeSize).toInt(), (footerCenterY + badgeSize / 2f).toInt())
-                ContextCompat.getDrawable(context, R.drawable.widget_delta_badge)?.mutate()?.apply {
-                    setTint(deltaColor)
-                    bounds = badgeBounds
-                    draw(canvas)
-                }
-                deltaPaint.color = colors.background
-                // Centre the actual glyph ink, including side bearings, rather than the
-                // font line box (whose unused descender space shifts digits upwards).
-                val ink = Rect()
-                deltaPaint.getTextBounds(deltaText, 0, deltaText.length, ink)
-                canvas.drawText(deltaText, badgeBounds.exactCenterX() - ink.exactCenterX(),
-                    badgeBounds.exactCenterY() - ink.exactCenterY(), deltaPaint)
-            } else {
-                canvas.drawText(deltaText, width - pad - deltaWidth,
-                    footerCenterY - (deltaPaint.fontMetrics.ascent + deltaPaint.fontMetrics.descent) / 2f, deltaPaint)
-            }
-        }
         return bitmap
-    }
-
-    internal fun drawFollowerCount(
-        canvas: Canvas,
-        words: List<String>,
-        paints: Map<String, Paint>,
-        maxWidth: Float,
-        maxHeight: Float,
-        padding: Float,
-        wordGap: Float,
-        lineGap: Float,
-    ) {
-        val textSize = findTextSize(words, paints, maxWidth, maxHeight, wordGap, lineGap)
-        val lines = wrapWords(words, paints, maxWidth, textSize, wordGap)
-        val bounds = lines.map { measureLineInk(it, paints, textSize, wordGap) }
-        val advance = baselineAdvance(bounds, lineGap)
-        val firstBaseline = padding - bounds.first().top
-        lines.forEachIndexed { index, line ->
-            var x = padding - bounds[index].left
-            val baseline = firstBaseline + index * advance
-            line.forEach { word ->
-                val paint = paints.getValue(word).apply { this.textSize = textSize }
-                canvas.drawText(word, x, baseline, paint)
-                x += paint.measureText(word) + wordGap
-            }
-        }
-    }
-
-    // All lines share the paragraph's ascent/descent envelope. Individual ink
-    // boxes differ (e.g. commas and 'y'), but must not change the baseline rhythm.
-    private fun baselineAdvance(bounds: List<RectF>, gap: Float): Float =
-        bounds.maxOf { it.bottom } - bounds.minOf { it.top } + gap
-
-    private fun findTextSize(
-        words: List<String>,
-        paints: Map<String, Paint>,
-        maxWidth: Float,
-        maxHeight: Float,
-        gap: Float,
-        lineGap: Float,
-    ): Float {
-        // Fit the visible glyphs, not a nominal em box. One UI Sans has enough
-        // unused em space to otherwise leave room for another line of text.
-        fun fits(size: Float): Boolean {
-            val lines = wrapWords(words, paints, maxWidth, size, gap)
-            val bounds = lines.map { measureLineInk(it, paints, size, gap) }
-            return bounds.all { it.width() <= maxWidth } &&
-                bounds.last().bottom - bounds.first().top +
-                (lines.size - 1) * baselineAdvance(bounds, lineGap) <= maxHeight
-        }
-        var low = 1f
-        var high = maxHeight.coerceAtLeast(low)
-        // A single line's glyphs can be shorter than its nominal text size.
-        while (fits(high)) high *= 2f
-        repeat(14) {
-            val size = (low + high) / 2f
-            if (fits(size)) low = size else high = size
-        }
-        return low
-    }
-
-    private fun measureLineInk(
-        words: List<String>,
-        paints: Map<String, Paint>,
-        textSize: Float,
-        gap: Float,
-    ): RectF {
-        val line = RectF()
-        val ink = Rect()
-        var x = 0f
-        words.forEach { word ->
-            val paint = paints.getValue(word).apply { this.textSize = textSize }
-            paint.getTextBounds(word, 0, word.length, ink)
-            line.union(x + ink.left, ink.top.toFloat(), x + ink.right, ink.bottom.toFloat())
-            x += paint.measureText(word) + gap
-        }
-        return line
     }
 
     private fun wordSpacing(context: Context, maxWidth: Float): Float =
         (if (maxWidth / context.resources.displayMetrics.density < 230f) 4f else 6f) * context.resources.displayMetrics.density
 
-    private fun measureWord(paint: Paint, word: String, textSize: Float): Float =
-        paint.apply { this.textSize = textSize }.measureText(word)
-
-    private fun wrapWords(
+    internal fun followerHero(
+        context: Context,
+        settings: TwidgetWidgetSettings,
         words: List<String>,
-        paints: Map<String, Paint>,
-        maxWidth: Float,
-        textSize: Float,
-        space: Float,
-    ): List<List<String>> {
-        // Measure each word with the paint it will actually be drawn with —
-        // per-word weight/width means a single measuring paint would misjudge
-        // the heavier emphasis words and overflow the card.
-        val lines = mutableListOf<MutableList<String>>()
-        var current = mutableListOf<String>()
-        var currentWidth = 0f
-
-        words.forEach { word ->
-            val width = measureWord(paints.getValue(word), word, textSize)
-            if (current.isNotEmpty() && currentWidth + space + width > maxWidth) {
-                lines += current
-                current = mutableListOf()
-                currentWidth = 0f
+        countWordCount: Int,
+        primary: Int,
+        secondary: Int,
+        deltaColor: Int,
+    ): FollowerHeroLayout {
+        val flex = settings.fontFamily == TwidgetStore.FONT_GOOGLE_SANS_FLEX
+        val natural = textPaint(context, settings, primary, bold = false).apply { textSize = 100f }
+        // Use actual glyph advances, not spelling, character counts or a word dictionary.
+        // Shorter runs can carry more emphasis without crowding their neighbours.
+        val emphasis = words.map { (1f - (natural.measureText(it) / natural.textSize - 1.5f) / 4f).coerceIn(0f, 1f) }
+        return FollowerHeroLayout(words) { index, fullness ->
+            val supporting = index >= countWordCount
+            val connector = words[index].equals("and", ignoreCase = true) || words[index].equals("und", ignoreCase = true)
+            val weight = when {
+                supporting || connector -> 200
+                flex -> (500 + emphasis[index] * 330 + fullness * 70).toInt().coerceIn(450, 900)
+                // A wider weight range gives non-width-variable fonts contrast too.
+                // Squaring the measured emphasis keeps longer words visibly lighter.
+                else -> (300 + emphasis[index] * emphasis[index] * 500 + fullness * 60)
+                    .toInt().coerceIn(300, 800)
             }
-            current += word
-            currentWidth += if (currentWidth == 0f) width else space + width
+            // The supporting line keeps the design's narrow proportions even when
+            // count words open up to fill a short line. All runs share one size.
+            val axisWidth = when (index) {
+                countWordCount -> 69
+                countWordCount + 1 -> 57
+                else -> (100 + emphasis[index] * 18 + fullness * 30).toInt()
+            }
+            Paint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
+                color = when (index) {
+                    countWordCount -> if (settings.style == WidgetStyle.MATERIAL) secondary else withAlpha(primary, 0.6f)
+                    countWordCount + 1 -> deltaColor
+                    else -> primary
+                }
+                applyWidgetTypeface(context, settings.fontFamily, weight, axisWidth,
+                    googleRoundness = if (index > countWordCount) 100 else 0,
+                    googleSlant = if (!supporting && words[index].endsWith(',')) -10 else 0)
+            }
         }
-        if (current.isNotEmpty()) lines += current
-        return lines
     }
 
     // Numeric formats for the 2x1 and strip (3x1/4x1) sizes, drawn as bitmaps
@@ -342,103 +242,6 @@ object WidgetArtworkRenderer {
         if (maxWidth <= 0f) return
         while (paint.measureText(text) > maxWidth && paint.textSize > 8f) {
             paint.textSize -= 1f
-        }
-    }
-
-    // Word classes for the spelled-out follower count. Each maps to a
-    // typographic role that both fonts render in their own register (see the
-    // Figma 4x2 widget spec).
-    private val ONES_WORDS = setOf(
-        "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine",
-        "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen",
-        "Seventeen", "Eighteen", "Nineteen",
-        "Ein", "Eine", "Eins", "Zwei", "Drei", "Vier", "Fünf", "Sechs", "Sieben", "Acht", "Neun",
-        "Zehn", "Elf", "Zwölf", "Dreizehn", "Vierzehn", "Fünfzehn", "Sechzehn",
-        "Siebzehn", "Achtzehn", "Neunzehn", "Null",
-    )
-    private val TENS_WORDS = setOf(
-        "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety",
-        "Zwanzig", "Dreißig", "Vierzig", "Fünfzig", "Sechzig", "Siebzig", "Achtzig", "Neunzig",
-    )
-    private val SCALE_WORDS = setOf(
-        "Thousand", "Million", "Billion", "Trillion", "Quadrillion", "Quintillion",
-        "Tausend", "Millionen", "Milliarde", "Milliarden", "Billionen", "Billiarde", "Billiarden",
-        "Trillionen",
-    )
-    private val CONNECTOR_WORDS = setOf("Hundred", "and", "Hundert", "und")
-
-    // Typographic role per word. TENS carries the loudest emphasis, ONES next,
-    // HUNDRED anchors the scale, SOFT words (thousand/million/"and") recede, and
-    // LABEL ("Followers") is the quietest. Emphasis is by weight, hierarchy by
-    // opacity — and for the variable font, by width too.
-    private enum class WordRole { TENS, ONES, HUNDRED, SOFT, LABEL, STRONG }
-
-    private fun roleOf(context: Context, word: String): WordRole {
-        val isLabel = word.equals("Follower", ignoreCase = true) ||
-            word.equals("Followers", ignoreCase = true) ||
-            word.equals(context.getString(R.string.followers), ignoreCase = true)
-        if (isLabel) return WordRole.LABEL
-        return when (val bare = word.trim(',')) {
-            in TENS_WORDS -> WordRole.TENS
-            in ONES_WORDS -> WordRole.ONES
-            in SCALE_WORDS -> WordRole.SOFT
-            in CONNECTOR_WORDS ->
-                if (bare.equals("Hundred", ignoreCase = true) || bare.equals("Hundert", ignoreCase = true)) {
-                    WordRole.HUNDRED
-                } else {
-                    WordRole.SOFT
-                }
-            else -> WordRole.STRONG
-        }
-    }
-
-    // Per-role weights, kept separate for the two families. One UI Sans keeps
-    // its emphasized magnitude words at Bold rather than ExtraBold, while
-    // Google Sans Flex has a true Black and peaks only on the tens word.
-    private fun oneUiWeightFor(role: WordRole): Int = when (role) {
-        WordRole.TENS, WordRole.ONES -> ONE_UI_EMPHASIS_WEIGHT
-        WordRole.HUNDRED -> 600
-        WordRole.STRONG -> 700
-        WordRole.SOFT -> 400
-        WordRole.LABEL -> 200
-    }
-
-    private fun gsfWeightFor(role: WordRole): Int = when (role) {
-        WordRole.TENS -> 900
-        WordRole.ONES, WordRole.STRONG -> 900
-        WordRole.HUNDRED, WordRole.SOFT -> 600
-        WordRole.LABEL -> 400
-    }
-
-    private fun gsfWidthFor(role: WordRole): Int = when (role) {
-        WordRole.TENS -> 65
-        WordRole.ONES, WordRole.STRONG -> 118
-        WordRole.HUNDRED, WordRole.SOFT -> 100
-        WordRole.LABEL -> 69
-    }
-
-    private fun wordPaint(
-        context: Context,
-        settings: TwidgetWidgetSettings,
-        word: String,
-        primary: Int,
-        @Suppress("UNUSED_PARAMETER") secondary: Int,
-    ): Paint {
-        val role = roleOf(context, word)
-        val gsf = settings.fontFamily == TwidgetStore.FONT_GOOGLE_SANS_FLEX
-        val weight = if (gsf) gsfWeightFor(role) else oneUiWeightFor(role)
-        return Paint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
-            // Label opacity (0.6) comes straight from the design.
-            color = if (role == WordRole.LABEL) {
-                if (settings.style == WidgetStyle.MATERIAL) secondary else withAlpha(primary, 0.6f)
-            } else primary
-            applyWidgetTypeface(
-                context = context,
-                fontFamily = settings.fontFamily,
-                weight = weight,
-                googleWidth = if (word.equals("and", true) || word.equals("und", true)) 78 else gsfWidthFor(role),
-                googleSlant = if (word.trim(',') in SCALE_WORDS) -10 else 0,
-            )
         }
     }
 
