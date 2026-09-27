@@ -29,7 +29,7 @@ class FollowerHeroLayoutInstrumentedTest {
 
     @Test fun fittedRunsPreserveWholeWordsAndStayInsideTheHero() {
         for (font in fonts) for (language in listOf("en", "de"))
-            for (count in listOf(0L, 7671L, 999_999_999L, Long.MAX_VALUE)) {
+            for (count in listOf(0L, 116L, 7671L, 999_999_999L, Long.MAX_VALUE)) {
             val words = TwidgetWidget.followersInWords(count, AppLocales.resolve(language)).split(Regex("\\s+"))
             val allWords = words + "Followers" + "+123,456"
             val hero = WidgetArtworkRenderer.followerHero(context,
@@ -42,7 +42,7 @@ class FollowerHeroLayoutInstrumentedTest {
                     assertEquals("Every hero run, including the delta, uses one size", layout.size, it.paint.textSize, 0f)
                 }
                 assertTrue("All glyphs fit horizontally: $font / $language / $count", layout.bounds.all { it.width() <= width })
-                assertTrue("All glyphs fit vertically: $font / $language / $count", layout.height(4f) <= height)
+                assertTrue("All glyphs fit vertically: $font / $language / $count", layout.height <= height)
             }
         }
     }
@@ -113,14 +113,49 @@ class FollowerHeroLayoutInstrumentedTest {
         zero.recycle()
     }
 
+    @Test fun shortCountsUseMoreSpacingWithoutSplittingWordsOrCrowdingTheFooter() {
+        for (font in fonts) {
+            fun layout(count: Long): FollowerHeroLayout.Layout {
+                val words = TwidgetWidget.followersInWords(count, Locale.ENGLISH).split(" ")
+                return WidgetArtworkRenderer.followerHero(context,
+                    WidgetPreviews.settings(WidgetStyle.MATERIAL).copy(fontFamily = font),
+                    words + "Followers" + "+1", words.size, Color.BLACK, Color.GRAY, Color.GREEN)
+                    .fit(328f, 124f, 6f, 4f)
+            }
+            val short = layout(116)
+            val long = layout(999_999_999)
+            assertTrue("Short counts need more leading: $font", short.lineGap > long.lineGap)
+            assertTrue("Large text needs readable word spaces: $font", short.wordGap > long.wordGap)
+            assertTrue("Spacing must respect footer clearance", short.height <= 124f)
+            short.lines.flatten().forEach { assertEquals(short.size, it.paint.textSize, 0f) }
+        }
+    }
+
+    @Test fun cachedFontStylesDoNotLeakColoursOrSizesBetweenWidgets() {
+        val stats = ProfileStats("Test", "twidget", 116, 0, 0, 0)
+        for (font in fonts) {
+            val settings = WidgetPreviews.settings(WidgetStyle.MATERIAL).copy(fontFamily = font, showDelta = true)
+            val before = WidgetArtworkRenderer.render(context, 352, 176, stats, settings,
+                TwidgetWidget.LAYOUT_MODE_LARGE, false, 1)
+            WidgetArtworkRenderer.render(context, 162, 280, stats.copy(followersCount = 999_999_999), settings,
+                TwidgetWidget.LAYOUT_MODE_LARGE, true, -3).recycle()
+            val after = WidgetArtworkRenderer.render(context, 352, 176, stats, settings,
+                TwidgetWidget.LAYOUT_MODE_LARGE, false, 1)
+            assertTrue("Font-cache hits must preserve the entire artwork: $font", before.sameAs(after))
+            before.recycle()
+            after.recycle()
+        }
+    }
+
     @Test fun exportRefinedHeroPreviews() {
-        val sheet = Bitmap.createBitmap(1104, 850, Bitmap.Config.ARGB_8888)
+        val sheet = Bitmap.createBitmap(1104, 1258, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(sheet)
         canvas.drawColor(Color.rgb(65, 65, 65))
         val label = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE; textSize = 14f }
         fonts.forEachIndexed { column, font ->
             canvas.drawText(font, column * 368f + 8, 20f, label)
-            for ((row, example) in listOf(352 to 7671L, 352 to 999_999_999L, 162 to 7671L, 162 to 999_999_999L).withIndex()) {
+            for ((row, example) in listOf(352 to 7671L, 352 to 999_999_999L, 162 to 7671L,
+                162 to 999_999_999L, 352 to 116L, 162 to 116L).withIndex()) {
                 val style = if (column == 0) WidgetStyle.MATERIAL else WidgetStyle.ONE_UI
                 val settings = WidgetPreviews.settings(style).copy(fontFamily = font,
                     language = "en", showDelta = true, containedFooter = row % 2 == 0,

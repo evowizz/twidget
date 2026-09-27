@@ -6,6 +6,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
+import android.util.LruCache
 import androidx.core.content.ContextCompat
 import com.tjg.twidget.R
 import com.tjg.twidget.core.AppLocales
@@ -15,6 +16,11 @@ import com.tjg.twidget.data.TwidgetWidgetSettings
 import com.tjg.twidget.ui.TwidgetFonts
 
 object WidgetArtworkRenderer {
+    private data class FontStyle(val family: String, val weight: Int, val width: Int, val roundness: Int, val slant: Int)
+    // Variable typeface construction is expensive, especially on resize. Templates
+    // are bounded and never mutated; each caller retains its own colour and size.
+    private val fontPaints = LruCache<FontStyle, Paint>(256)
+
     fun render(
         context: Context,
         widthPx: Int,
@@ -270,20 +276,32 @@ object WidgetArtworkRenderer {
         googleRoundness: Int = 0,
         googleSlant: Int = 0,
     ) {
-        when (fontFamily) {
-            TwidgetStore.FONT_SYSTEM -> typeface = TwidgetFonts.system(weight)
-            TwidgetStore.FONT_GOOGLE_SANS_FLEX -> {
-                fontFeatureSettings = "'dlig' 1, 'lnum' 1, 'pnum' 1"
-                typeface = gsfTypeface(context)
-                setFontVariationSettings(
-                    "'wght' $weight, 'wdth' ${googleWidth ?: 100}, 'ROND' $googleRoundness, 'slnt' $googleSlant, 'GRAD' 0, 'opsz' 18",
-                )
-            }
-            else -> {
-                typeface = oneUiTypeface(context)
-                setFontVariationSettings("'wght' $weight")
-            }
+        val flex = fontFamily == TwidgetStore.FONT_GOOGLE_SANS_FLEX
+        val key = FontStyle(fontFamily, weight, if (flex) (googleWidth ?: 100).coerceIn(25, 151) else 100,
+            if (flex) googleRoundness else 0, if (flex) googleSlant else 0)
+        val oldColor = color
+        val oldSize = textSize
+        synchronized(fontPaints) {
+            val template = fontPaints[key] ?: Paint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
+                when (fontFamily) {
+                    TwidgetStore.FONT_SYSTEM -> typeface = TwidgetFonts.system(weight)
+                    TwidgetStore.FONT_GOOGLE_SANS_FLEX -> {
+                        fontFeatureSettings = "'dlig' 1, 'lnum' 1, 'pnum' 1"
+                        typeface = gsfTypeface(context)
+                        setFontVariationSettings(
+                            "'wght' $weight, 'wdth' ${key.width}, 'ROND' ${key.roundness}, 'slnt' ${key.slant}, 'GRAD' 0, 'opsz' 18",
+                        )
+                    }
+                    else -> {
+                        typeface = oneUiTypeface(context)
+                        setFontVariationSettings("'wght' $weight")
+                    }
+                }
+            }.also { fontPaints.put(key, it) }
+            set(template)
         }
+        color = oldColor
+        textSize = oldSize
     }
 
     private fun dp(context: Context, value: Int): Int =

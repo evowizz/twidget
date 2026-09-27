@@ -10,11 +10,32 @@ internal class FollowerHeroLayout(
     private val words: List<String>,
     private val makePaint: (index: Int, fullness: Float) -> Paint,
 ) {
-    internal data class Run(val index: Int, val text: String, val paint: Paint)
-    internal data class Layout(val lines: List<List<Run>>, val size: Float, val bounds: List<RectF>) {
+    internal data class Run(val index: Int, val text: String, val paint: Paint) {
+        private var measuredSize = Float.NaN
+        private val ink = Rect()
+        var advance = 0f
+            private set
+
+        fun measure(size: Float): Rect {
+            paint.textSize = size
+            if (measuredSize != size) {
+                paint.getTextBounds(text, 0, text.length, ink)
+                advance = paint.measureText(text)
+                measuredSize = size
+            }
+            return ink
+        }
+    }
+    internal data class Layout(
+        val lines: List<List<Run>>,
+        val size: Float,
+        val bounds: List<RectF>,
+        val wordGap: Float,
+        val lineGap: Float,
+    ) {
         val ascent: Float get() = bounds.minOf { it.top }
-        fun advance(gap: Float): Float = bounds.maxOf { it.bottom } - ascent + gap
-        fun height(gap: Float): Float = bounds.last().bottom - bounds.first().top + (lines.size - 1) * advance(gap)
+        val advance: Float get() = bounds.maxOf { it.bottom } - ascent + lineGap
+        val height: Float get() = bounds.last().bottom - bounds.first().top + (lines.size - 1) * advance
     }
 
     fun draw(canvas: Canvas, width: Float, height: Float, padding: Float, wordGap: Float, lineGap: Float) {
@@ -22,11 +43,11 @@ internal class FollowerHeroLayout(
         val layout = fit(width, height, wordGap, lineGap)
         layout.lines.forEachIndexed { lineIndex, line ->
             var x = padding - layout.bounds[lineIndex].left
-            val baseline = padding - layout.bounds.first().top + lineIndex * layout.advance(lineGap)
+            val baseline = padding - layout.bounds.first().top + lineIndex * layout.advance
             line.forEach { run ->
                 run.paint.textSize = layout.size
                 canvas.drawText(run.text, x, baseline, run.paint)
-                x += run.paint.measureText(run.text) + wordGap
+                x += run.advance + layout.wordGap
             }
         }
     }
@@ -48,8 +69,8 @@ internal class FollowerHeroLayout(
         // Shrinking the font alone can leave an entire line's worth of unused space.
         for (fullness in listOf(0f, -0.5f, -1f)) {
             val candidateRuns = runs(fullness)
-            val layout = fitSize(maxWidth, maxHeight, wordGap, lineGap) { size ->
-                wrap(candidateRuns, size, maxWidth, wordGap)
+            val layout = fitSize(maxWidth, maxHeight, wordGap, lineGap) { size, gap ->
+                wrap(candidateRuns, size, maxWidth, gap)
             }
             val score = layout.size * (1f + fullness * 0.10f)
             if (score > bestScore) {
@@ -68,7 +89,7 @@ internal class FollowerHeroLayout(
             repeat(6) {
                 val fullness = (low + high) / 2f
                 val candidate = runs(fullness, line.map { it.index })
-                if (measure(candidate, chosen.size, wordGap).width() <= maxWidth) {
+                if (measure(candidate, chosen.size, chosen.wordGap).width() <= maxWidth) {
                     result = candidate
                     low = fullness
                 } else high = fullness
@@ -77,7 +98,13 @@ internal class FollowerHeroLayout(
         }
         // Changing axes can also alter ascent/descent; verify the final outlines
         // against both dimensions while preserving the chosen line breaks.
-        return fitSize(maxWidth, maxHeight, wordGap, lineGap, chosen.size) { expanded }
+        val fitted = fitSize(maxWidth, maxHeight, wordGap, lineGap, chosen.size) { _, _ -> expanded }
+        if (fitted.lines.size == 1) return fitted
+        // Short counts often fit two large lines with room left below. Spend some
+        // of that room on leading instead of making already-large letters bigger.
+        val sparePerLine = ((maxHeight - fitted.height) / (fitted.lines.size - 1)).coerceAtLeast(0f)
+        return fitted.copy(lineGap = minOf(fitted.lineGap + sparePerLine,
+            maxOf(fitted.lineGap, fitted.size * 0.40f)))
     }
 
     private fun fitSize(
@@ -86,18 +113,22 @@ internal class FollowerHeroLayout(
         wordGap: Float,
         lineGap: Float,
         sizeLimit: Float = height * 2f,
-        linesAt: (Float) -> List<List<Run>>,
+        linesAt: (size: Float, gap: Float) -> List<List<Run>>,
     ): Layout {
         fun layout(size: Float): Layout {
-            val lines = linesAt(size)
-            return Layout(lines, size, lines.map { measure(it, size, wordGap) })
+            // Spacing follows the common font size, not a follower-count cutoff.
+            // Dense paragraphs keep their existing minimum gaps; sparse ones breathe.
+            val fittedWordGap = maxOf(wordGap, minOf(size * 0.16f, wordGap * 2.5f))
+            val fittedLineGap = maxOf(lineGap, minOf(size * 0.20f, lineGap * 3f))
+            val lines = linesAt(size, fittedWordGap)
+            return Layout(lines, size, lines.map { measure(it, size, fittedWordGap) }, fittedWordGap, fittedLineGap)
         }
         var low = 0.01f
         var high = sizeLimit
         repeat(16) {
             val size = (low + high) / 2f
             val candidate = layout(size)
-            if (candidate.bounds.all { it.width() <= width } && candidate.height(lineGap) <= height) low = size
+            if (candidate.bounds.all { it.width() <= width } && candidate.height <= height) low = size
             else high = size
         }
         return layout(low)
@@ -105,13 +136,23 @@ internal class FollowerHeroLayout(
 
     private fun wrap(runs: List<Run>, size: Float, width: Float, gap: Float): List<List<Run>> {
         val lines = mutableListOf<List<Run>>()
-        var current = emptyList<Run>()
+        var current = mutableListOf<Run>()
+        val bounds = RectF()
+        val next = RectF()
+        var x = 0f
         runs.forEach { run ->
-            val next = current + run
-            if (current.isNotEmpty() && measure(next, size, gap).width() > width) {
+            val ink = run.measure(size)
+            next.set(bounds)
+            next.union(x + ink.left, ink.top.toFloat(), x + ink.right, ink.bottom.toFloat())
+            if (current.isNotEmpty() && next.width() > width) {
                 lines += current
-                current = listOf(run)
-            } else current = next
+                current = mutableListOf()
+                bounds.setEmpty()
+                x = 0f
+            }
+            current += run
+            bounds.union(x + ink.left, ink.top.toFloat(), x + ink.right, ink.bottom.toFloat())
+            x += run.advance + gap
         }
         if (current.isNotEmpty()) lines += current
         return lines
@@ -119,13 +160,11 @@ internal class FollowerHeroLayout(
 
     private fun measure(runs: List<Run>, size: Float, gap: Float): RectF {
         val bounds = RectF()
-        val ink = Rect()
         var x = 0f
         runs.forEach { run ->
-            run.paint.textSize = size
-            run.paint.getTextBounds(run.text, 0, run.text.length, ink)
+            val ink = run.measure(size)
             bounds.union(x + ink.left, ink.top.toFloat(), x + ink.right, ink.bottom.toFloat())
-            x += run.paint.measureText(run.text) + gap
+            x += run.advance + gap
         }
         return bounds
     }
