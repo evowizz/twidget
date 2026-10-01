@@ -7,7 +7,6 @@ import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
-import android.util.TypedValue
 import android.view.DragEvent
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -18,10 +17,8 @@ import android.widget.GridLayout
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.appcompat.content.res.AppCompatResources
-import androidx.core.widget.TextViewCompat
 import com.tjg.twidget.R
 import com.tjg.twidget.analytics.ActivityClient
 import com.tjg.twidget.analytics.AnalyticsBlendPolicy
@@ -53,10 +50,10 @@ import kotlin.math.roundToLong
 // Two grid footprints only: half-width and full-width. Charts are
 // full-width cards with extra height.
 internal enum class DashboardCardSize(val span: Int, val heightDp: Int) {
-    HALF(1, 140),
+    HALF(1, 160),
     MILESTONE(2, 112),
-    FULL(2, 156),
-    CHART(2, 260),
+    FULL(2, 160),
+    CHART(2, 263),
     TOP_FOLLOWERS(2, 430),
     POST(2, 360),
 }
@@ -255,101 +252,20 @@ internal class MainDashboardBinder(
 
     private fun createInsightCard(card: DashboardCardType, stats: ProfileStats, history: List<HistorySample>): View {
         val spec = insightSpec(card, stats, history)
-        val valueTextSize = if (card.size == DashboardCardSize.FULL) 38f else 32f
-        val labelTextSize = 13f
-        val detailTextSize = 14f
-        return LinearLayout(activity).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(activity.dp(16), activity.dp(14), activity.dp(16), activity.dp(14))
-            background = AppCompatResources.getDrawable(activity, R.drawable.metric_card_bg)
-
-            val labelRow = LinearLayout(activity).apply {
-                gravity = Gravity.CENTER_VERTICAL
-                orientation = LinearLayout.HORIZONTAL
+        return LayoutInflater.from(activity).inflate(R.layout.metric_card_small_stat, null, false).apply {
+            findViewById<ImageView>(R.id.metric_platform_icon).apply {
+                setImageResource(com.tjg.twidget.ui.AppAppearance.logoDrawable(context))
+                imageTintList = ColorStateList.valueOf(activity.getColor(R.color.oneui_text_secondary))
             }
-            labelRow.addView(View(activity).apply {
-                background = GradientDrawable().apply {
-                    shape = GradientDrawable.OVAL
-                    setColor(spec.accent)
-                }
-            }, LinearLayout.LayoutParams(activity.dp(8), activity.dp(8)))
-            labelRow.addView(TextView(activity).apply {
-                text = spec.label
-                includeFontPadding = false
-                maxLines = 1
-                ellipsize = android.text.TextUtils.TruncateAt.END
-                setTextColor(activity.getColor(R.color.oneui_text_secondary))
-                textSize = labelTextSize
-                typeface = Typeface.create("sec", Typeface.BOLD)
-                setPadding(activity.dp(6), 0, 0, 0)
-            }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-            addView(labelRow, LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-            ))
-
-            // Auto-size needs a bounded height to reach the max size — with
-            // wrap_content it locks to the first measured bounds. Fix the row
-            // height to the max text size's line and let width do the shrinking.
-            val valueHeight = (valueTextSize * 1.3f * resources.displayMetrics.scaledDensity).toInt()
-            addView(TextView(activity).apply {
+            findViewById<TextView>(R.id.metric_label).text = spec.label
+            findViewById<TextView>(R.id.followers_value).apply {
                 text = spec.value
-                includeFontPadding = false
-                maxLines = 1
-                gravity = Gravity.CENTER_VERTICAL or Gravity.START
-                setTextColor(activity.getColor(R.color.oneui_text_primary))
-                typeface = heavyTypeface
-                TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(
-                    this, 16, valueTextSize.toInt(), 1, TypedValue.COMPLEX_UNIT_SP,
-                )
-            }, LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                valueHeight,
-            ).apply {
-                topMargin = activity.dp(4)
-            })
-
-            if (spec.progress != null) {
-                val progressValue = spec.progress.coerceIn(0, 100)
-                addView(TextView(activity).apply {
-                    text = activity.getString(R.string.milestone_progress_percent, progressValue)
-                    includeFontPadding = false
-                    gravity = Gravity.END
-                    setTextColor(spec.accent)
-                    textSize = 12f
-                    typeface = Typeface.create("sec", Typeface.BOLD)
-                }, LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                ).apply {
-                    topMargin = activity.dp(9)
-                })
-                addView(ProgressBar(activity, null, android.R.attr.progressBarStyleHorizontal).apply {
-                    max = 100
-                    progress = progressValue
-                    progressTintList = ColorStateList.valueOf(spec.accent)
-                    progressBackgroundTintList = ColorStateList.valueOf(activity.getColor(R.color.oneui_divider))
-                }, LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    activity.dp(6),
-                ).apply {
-                    topMargin = activity.dp(4)
-                })
+                com.tjg.twidget.ui.TwidgetFonts.setRole(this, com.tjg.twidget.ui.TwidgetFonts.Role.DASHBOARD_VALUE)
             }
-
-            addView(TextView(activity).apply {
+            findViewById<TextView>(R.id.stat_detail).apply {
                 text = spec.detail
-                includeFontPadding = false
-                maxLines = if (spec.progress == null) 2 else 1
-                ellipsize = android.text.TextUtils.TruncateAt.END
-                setTextColor(activity.getColor(R.color.oneui_text_secondary))
-                textSize = detailTextSize
-                setPadding(0, activity.dp(7), 0, 0)
-            }, LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-            ))
+                visibility = if (spec.detail.isBlank()) View.GONE else View.VISIBLE
+            }
         }
     }
 
@@ -456,6 +372,7 @@ internal class MainDashboardBinder(
             else -> error("Compact cards do not have chart layouts.")
         }
         return LayoutInflater.from(activity).inflate(layoutRes, null, false).also { root ->
+            root.findViewById<ImageView>(R.id.metric_platform_icon).setImageResource(com.tjg.twidget.ui.AppAppearance.logoDrawable(activity))
             bindMetric(
                 root,
                 valueId,
@@ -628,6 +545,7 @@ internal class MainDashboardBinder(
             typeface = heavyTypeface
         }
         root.findViewById<TextView>(deltaId)?.apply {
+            com.tjg.twidget.ui.TwidgetFonts.setRole(this, com.tjg.twidget.ui.TwidgetFonts.Role.CHART_DELTA)
             text = if (delta == 0L) "" else TwidgetStore.signedNumber(delta)
             setTextColor(if (delta < 0) activity.getColor(R.color.metric_red) else activity.getColor(R.color.metric_green))
             visibility = if (delta == 0L) View.GONE else View.VISIBLE

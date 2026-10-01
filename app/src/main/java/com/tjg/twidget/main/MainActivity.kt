@@ -222,6 +222,7 @@ class MainActivity : ScheduleQueueHostActivity() {
     }
 
     override fun onPrepareOptionsMenu(menu: Menu): Boolean {
+        menu.findItem(R.id.menu_open_profile)?.setIcon(com.tjg.twidget.ui.AppAppearance.logoDrawable(this))
         if (destination == MainDestination.SCHEDULING) {
             setDashboardMenuVisible(menu, false)
             return super.onPrepareOptionsMenu(menu)

@@ -97,7 +97,8 @@ class WidgetConfigActivity : EdgeToEdgeActivity() {
         currentLevel = closestOpacityLevel(tintAlpha)
         tintAlpha = OPACITY_PRESETS[currentLevel]
         tintColor = settings.tintColor
-        logo = settings.logo
+        logo = if (getSharedPreferences(TwidgetStore.PREFS, MODE_PRIVATE).contains("widget_logo_$appWidgetId"))
+            settings.logo else TwidgetStore.widgetSettings(this).logo
         tapAction = settings.tapAction
         accountUsername = settings.accountUsername
         colorMode = settings.colorMode

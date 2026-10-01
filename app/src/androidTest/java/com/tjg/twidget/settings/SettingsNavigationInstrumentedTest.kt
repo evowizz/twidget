@@ -68,6 +68,26 @@ class SettingsNavigationInstrumentedTest {
         RefreshWorker.schedule(context)
     }
 
+    @Test fun preferenceScreensRespectNavigationAndKeyboardInsets() {
+        val activity = launch(Intent(context, BriefSettingsActivity::class.java))
+        onMain {
+            val root = activity.findViewById<android.view.View>(R.id.preference_toolbar_layout)
+            fun dispatch(bottom: Int, keyboard: Int) {
+                val insets = androidx.core.view.WindowInsetsCompat.Builder()
+                    .setInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars(), androidx.core.graphics.Insets.of(0, 0, 0, bottom))
+                    .setInsets(androidx.core.view.WindowInsetsCompat.Type.ime(), androidx.core.graphics.Insets.of(0, 0, 0, keyboard))
+                    .setVisible(androidx.core.view.WindowInsetsCompat.Type.ime(), keyboard > 0)
+                    .build()
+                androidx.core.view.ViewCompat.dispatchApplyWindowInsets(root, insets)
+                assertEquals(maxOf(bottom, keyboard), root.paddingBottom)
+            }
+            dispatch(24, 0)
+            dispatch(72, 0)
+            dispatch(24, 300)
+            dispatch(24, 0)
+        }
+    }
+
     @Test fun briefBadgeClearsOnlyAfterSetupAndViewingSettings() {
         briefPreferences.edit().remove("settings_viewed").apply()
         BriefSettingsStore.setOnboardingComplete(context, false)
@@ -214,6 +234,23 @@ class SettingsNavigationInstrumentedTest {
         }
     }
 
+    @Test fun appLogoPreservesInheritedAndExplicitPlacedWidgetLogos() {
+        val inheritedId = 987652
+        val explicitId = 987653
+        preferences.edit().putString("widget_logo", TwidgetStore.LOGO_X)
+            .remove("widget_logo_$inheritedId")
+            .putString("widget_logo_$explicitId", TwidgetStore.LOGO_TWITTER).commit()
+        AppAppearance.setLogoForWidgets(context, TwidgetStore.LOGO_TWITTER, listOf(inheritedId, explicitId))
+        assertEquals(TwidgetStore.LOGO_X, TwidgetStore.widgetSettings(context, inheritedId).logo)
+        assertEquals(TwidgetStore.LOGO_TWITTER, TwidgetStore.widgetSettings(context, explicitId).logo)
+        assertEquals(TwidgetStore.LOGO_TWITTER, TwidgetStore.widgetSettings(context, 987651).logo)
+        AppAppearance.setLogoForWidgets(context, TwidgetStore.LOGO_X, listOf(inheritedId, explicitId))
+        assertEquals(R.drawable.ic_logo_x, AppAppearance.logoDrawable(context))
+        assertEquals(TwidgetStore.LOGO_X, TwidgetStore.widgetSettings(context, inheritedId).logo)
+        assertEquals(TwidgetStore.LOGO_TWITTER, TwidgetStore.widgetSettings(context, explicitId).logo)
+        assertEquals(TwidgetStore.LOGO_X, TwidgetStore.widgetSettings(context, 987651).logo)
+    }
+
     @Test fun appearanceDefaultsPersistWithoutOverwritingWidgetOverrides() {
         val widgetId = 987654
         val original = TwidgetStore.widgetSettings(context)
@@ -230,13 +267,14 @@ class SettingsNavigationInstrumentedTest {
             assertEquals("settings_theme_system", ordered[1].key)
             assertTrue(ordered[2] is dev.oneuiproject.oneui.preference.InsetPreferenceCategory)
             assertEquals("settings_app_font", ordered[3].key)
+            assertEquals("settings_app_logo", ordered[4].key)
             val defaultsIndex = ordered.indexOfFirst { it.title == context.getString(R.string.settings_widget_defaults) }
             assertTrue(defaultsIndex > 3)
             assertEquals("settings_widget_style", ordered[defaultsIndex + 1].key)
             assertTrue(ordered[defaultsIndex + 2] is dev.oneuiproject.oneui.preference.InsetPreferenceCategory)
             assertEquals(listOf("settings_widget_opacity", "settings_widget_font", "settings_widget_colours",
-                "settings_widget_logo", "settings_widget_contained_footer", "settings_widget_contained_footer_description"),
-                ordered.drop(defaultsIndex + 3).take(6).map { it.key })
+                "settings_widget_contained_footer", "settings_widget_contained_footer_description"),
+                ordered.drop(defaultsIndex + 3).take(5).map { it.key })
             val showsFontTip = BuildConfig.FLAVOR == "github" && TwidgetFonts.hasSystemOneUiSans
             assertEquals(showsFontTip, ordered[3].widgetLayoutResource == R.layout.preference_font_tip)
             assertNull(screen.findPreference<Preference>("settings_app_font_tip"))
@@ -268,11 +306,18 @@ class SettingsNavigationInstrumentedTest {
             assertEquals(TwidgetStore.FONT_GOOGLE_SANS_FLEX, TwidgetStore.widgetSettings(context).fontFamily)
             assertEquals(TwidgetStore.COLOR_MODE_DARK, TwidgetStore.widgetSettings(context).colorMode)
             assertEquals(102, TwidgetStore.widgetSettings(context).tintAlpha)
-            screen.findPreference<Preference>("settings_widget_logo")!!.callChangeListener(TwidgetStore.LOGO_TWITTER)
+            screen.findPreference<Preference>("settings_app_logo")!!.callChangeListener(TwidgetStore.LOGO_TWITTER)
             assertEquals(TwidgetStore.LOGO_TWITTER, TwidgetStore.widgetSettings(context).logo)
             assertEquals(specific, TwidgetStore.widgetSettings(context, widgetId))
             assertEquals(TwidgetStore.FONT_GOOGLE_SANS_FLEX, TwidgetStore.widgetSettings(context, widgetId + 1).fontFamily)
         }
+        instrumentation.waitForIdleSync()
+        val screenshot = android.graphics.Bitmap.createBitmap(activity.window.decorView.width, activity.window.decorView.height, android.graphics.Bitmap.Config.ARGB_8888)
+        onMain { activity.window.decorView.draw(android.graphics.Canvas(screenshot)) }
+        java.io.File(context.cacheDir, "appearance-logo.png").outputStream().use {
+            screenshot.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it)
+        }
+        screenshot.recycle()
     }
 
     @Test fun googleTypographyMatchesReferenceAndRestoresOtherFonts() {

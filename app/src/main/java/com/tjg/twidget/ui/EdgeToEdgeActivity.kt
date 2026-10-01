@@ -17,6 +17,7 @@ import dev.oneuiproject.oneui.utils.applyEdgeToEdge
  */
 abstract class EdgeToEdgeActivity : AppCompatActivity() {
     private lateinit var createdFont: AppAppearance.Font
+    private lateinit var createdLogo: String
 
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(newBase)
@@ -25,6 +26,7 @@ abstract class EdgeToEdgeActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         createdFont = AppAppearance.font(this)
+        createdLogo = AppAppearance.logo(this)
         super.onCreate(savedInstanceState)
         // Apply after AppCompat installs the themed decor so the parent One UI
         // theme cannot restore an opaque navigation-bar colour afterwards.
@@ -47,7 +49,7 @@ abstract class EdgeToEdgeActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         // Refresh screens already in the back stack, including their Canvas text.
-        if (createdFont != AppAppearance.font(this)) recreate()
+        if (createdFont != AppAppearance.font(this) || createdLogo != AppAppearance.logo(this)) recreate()
     }
 
     override fun onStop() {
@@ -56,13 +58,13 @@ abstract class EdgeToEdgeActivity : AppCompatActivity() {
     }
 
     /**
-     * Insets fixed chrome but leaves the navigation edge available to scrolling
-     * content. Callers can use [onNavigationBarInset] to move bottom controls
-     * above button or gesture navigation without padding the whole window.
+     * Keeps content clear of system navigation and the keyboard. Callers with
+     * floating controls can use [onNavigationBarInset] to handle the navigation
+     * edge themselves while keeping their scrolling viewport full height.
      */
     protected fun applyEdgeToEdgeInsets(
         root: View,
-        onNavigationBarInset: (Int) -> Unit = {},
+        onNavigationBarInset: ((Int) -> Unit)? = null,
     ) {
         ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
             val safe = insets.getInsets(
@@ -72,10 +74,13 @@ abstract class EdgeToEdgeActivity : AppCompatActivity() {
             val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
             val imeVisible = insets.isVisible(WindowInsetsCompat.Type.ime()) && ime.bottom > 0
             val topPadding = if (SeslToolbarCompatibility.applyTopInset(view, safe.top)) 0 else safe.top
-            view.setPadding(safe.left, topPadding, safe.right, ime.bottom)
+            // Screens with floating controls handle their navigation inset in the callback.
+            // Other screens keep their entire content viewport above system navigation.
+            val bottomPadding = if (onNavigationBarInset == null) maxOf(ime.bottom, safe.bottom) else ime.bottom
+            view.setPadding(safe.left, topPadding, safe.right, bottomPadding)
             // IME insets already include the navigation region on Samsung and
             // several other OEM keyboards. Do not add it to floating chrome twice.
-            onNavigationBarInset(if (imeVisible) 0 else safe.bottom)
+            onNavigationBarInset?.invoke(if (imeVisible) 0 else safe.bottom)
             insets
         }
         ViewCompat.requestApplyInsets(root)

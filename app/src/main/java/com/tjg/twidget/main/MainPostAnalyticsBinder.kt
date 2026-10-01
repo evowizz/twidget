@@ -68,8 +68,8 @@ internal class MainPostAnalyticsBinder(
     private fun postAnalyticsCard(label: String, post: PostSummary): View =
         postAnalyticsShell(label, post.text.ifBlank { post.url }, post)
 
-    private fun postAnalyticsShell(label: String, body: String, post: PostSummary?): View =
-        LinearLayout(activity).apply {
+    private fun postAnalyticsShell(label: String, body: String, post: PostSummary?): View {
+        val surface = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(activity.dp(14), activity.dp(14), activity.dp(14), activity.dp(14))
             val opensPost = post?.url?.isNotBlank() == true
@@ -86,25 +86,37 @@ internal class MainPostAnalyticsBinder(
                 }
             }
 
-            addView(TextView(activity).apply {
-                text = label
-                includeFontPadding = false
-                maxLines = 1
-                ellipsize = android.text.TextUtils.TruncateAt.END
-                setTextColor(activity.getColor(R.color.oneui_text_secondary))
-                textSize = 13f
-                typeface = Typeface.create("sec", Typeface.BOLD)
+
+            addView(LinearLayout(activity).apply {
+                gravity = Gravity.CENTER_VERTICAL
+                addView(ImageView(activity).apply {
+                    setImageResource(com.tjg.twidget.ui.AppAppearance.logoDrawable(context))
+                    imageTintList = ColorStateList.valueOf(activity.getColor(R.color.oneui_text_secondary))
+                    contentDescription = null
+                }, LinearLayout.LayoutParams(activity.dp(16), activity.dp(16)))
+                addView(TextView(activity).apply {
+                    text = label
+                    includeFontPadding = false
+                    maxLines = 1
+                    ellipsize = android.text.TextUtils.TruncateAt.END
+                    textSize = 14f
+                    typeface = Typeface.create("sec", Typeface.BOLD)
+                    setTextColor(activity.getColor(R.color.oneui_text_secondary))
+                }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                    marginStart = activity.dp(10)
+                })
+            }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+            addView(View(activity).apply {
+                background = android.graphics.drawable.ColorDrawable(activity.getColor(R.color.oneui_divider))
             }, LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-            ))
+                LinearLayout.LayoutParams.MATCH_PARENT, activity.dp(1),
+            ).apply { topMargin = activity.dp(10); bottomMargin = activity.dp(10) })
+
 
             post?.let { addView(tweetAuthorRow(it), LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
-            ).apply {
-                topMargin = activity.dp(10)
-            }) }
+            )) }
 
             addView(TextView(activity).apply {
                 text = post?.let(::formattedPostText) ?: body.ifBlank { "--" }
@@ -121,17 +133,36 @@ internal class MainPostAnalyticsBinder(
                 topMargin = activity.dp(10)
             })
 
-            post?.media?.firstOrNull()?.let { media ->
-                addView(ImageView(activity).apply {
-                    contentDescription = media.alt.ifBlank { activity.getString(R.string.post_media) }
-                    scaleType = ImageView.ScaleType.CENTER_CROP
-                    ProfileImageLoader.loadMediaInto(activity, this, media.url, activity.dp(14))
-                }, LinearLayout.LayoutParams(
+            post?.media?.takeIf { it.isNotEmpty() }?.let { media ->
+                fun mediaImage(item: com.tjg.twidget.analytics.PostMedia): ImageView =
+                    com.tjg.twidget.ui.MediaAspectImageView(activity).apply {
+                        contentDescription = item.alt.ifBlank { activity.getString(R.string.post_media) }
+                        ProfileImageLoader.loadMediaInto(activity, this, item.url, activity.dp(14))
+                        scaleType = ImageView.ScaleType.FIT_CENTER
+                    }
+                val mediaView: View = if (media.size == 1) mediaImage(media.first()) else
+                    android.widget.HorizontalScrollView(activity).apply {
+                        isHorizontalScrollBarEnabled = false
+                        isFillViewport = true
+                        outlineProvider = object : android.view.ViewOutlineProvider() {
+                            override fun getOutline(view: View, outline: android.graphics.Outline) {
+                                outline.setRoundRect(0, 0, view.width, view.height, activity.dp(14).toFloat())
+                            }
+                        }
+                        clipToOutline = true
+                        addView(LinearLayout(activity).apply {
+                            orientation = LinearLayout.HORIZONTAL
+                            media.forEachIndexed { index, item ->
+                                addView(mediaImage(item), LinearLayout.LayoutParams(
+                                    LinearLayout.LayoutParams.WRAP_CONTENT, activity.dp(218),
+                                ).apply { if (index > 0) marginStart = activity.dp(8) })
+                            }
+                        })
+                    }
+                addView(mediaView, LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
-                    activity.dp(218),
-                ).apply {
-                    topMargin = activity.dp(10)
-                })
+                    if (media.size == 1) LinearLayout.LayoutParams.WRAP_CONTENT else activity.dp(218),
+                ).apply { topMargin = activity.dp(10) })
             }
 
             post?.let {
@@ -143,6 +174,9 @@ internal class MainPostAnalyticsBinder(
                 })
             }
         }
+
+        return surface
+    }
 
     private fun tweetAuthorRow(post: PostSummary): View =
         LinearLayout(activity).apply {

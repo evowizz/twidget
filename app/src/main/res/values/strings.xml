@@ -1072,4 +1072,10 @@
     <string name="brief_api_key_privacy_open_failed">Couldn’t open the privacy policy.</string>
     <string name="widget_contained_footer">Contained username and delta</string>
     <string name="widget_contained_footer_summary">Puts the username and follower delta in contained shapes, for better readability.</string>
+    <string name="dashboard_streak_days">days</string>
+    <string name="streak_card_steady">Steady streak</string>
+    <string name="streak_card_record">New high streak score</string>
+    <string name="streak_card_save">Save your streak</string>
+    <string name="streak_card_restart">Restart your streak</string>
+    <string name="settings_app_logo_style">Twitter/X Logo style</string>
 </resources>

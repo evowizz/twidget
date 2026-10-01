@@ -494,11 +494,47 @@ class SettingsCategoryPreferenceFragment : InsetPreferenceFragment() {
                 true
             }
         })
+        val logoValues = arrayOf(TwidgetStore.LOGO_X, TwidgetStore.LOGO_TWITTER)
+        val logoLabels = arrayOf(getString(R.string.widget_logo_x), getString(R.string.widget_logo_twitter))
+        val logoRow = CardItemView(context).apply { title = getString(R.string.settings_app_logo_style) }
+        fun displayLogo(value: String) {
+            logoRow.summary = ""
+            logoRow.getEndImageView().setImageResource(
+                if (value == TwidgetStore.LOGO_TWITTER) R.drawable.ic_settings_twitter else R.drawable.ic_logo_x,
+            )
+        }
+        displayLogo(AppAppearance.logo(context))
+        val logoPreference = LayoutPreference(context, logoRow).apply {
+            key = "settings_app_logo"
+            setTitle(R.string.settings_app_logo_style)
+            setAllowDividerAbove(true)
+            setAllowDividerBelow(true)
+            setOnPreferenceChangeListener { _, value ->
+                val logo = value as String
+                AppAppearance.setLogo(context, logo)
+                WidgetPreviews.publish(context)
+                displayLogo(logo)
+                true
+            }
+        }
+        val openLogoPicker = {
+            AlertDialog.Builder(context)
+                .setTitle(R.string.settings_app_logo_style)
+                .setSingleChoiceItems(logoLabels, logoValues.indexOf(AppAppearance.logo(context)).coerceAtLeast(0)) { dialog, index ->
+                    logoPreference.callChangeListener(logoValues[index])
+                    dialog.dismiss()
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+        }
+        logoRow.setOnClickListener { openLogoPicker() }
+        logoPreference.setOnPreferenceClickListener { openLogoPicker(); true }
+        screen.addPreference(logoPreference)
         screen.addPreference(category(R.string.settings_widget_defaults))
         var defaults = TwidgetStore.widgetSettings(context)
         fun update(next: TwidgetWidgetSettings) {
-            defaults = next
-            TwidgetStore.saveWidgetSettings(context, 0, next)
+            defaults = next.copy(logo = TwidgetStore.widgetSettings(context).logo)
+            TwidgetStore.saveWidgetSettings(context, 0, defaults)
             WidgetPreviews.publish(context)
             TwidgetWidget.updateAll(context)
             TwidgetBriefWidget.updateAll(context)
@@ -562,41 +598,7 @@ class SettingsCategoryPreferenceFragment : InsetPreferenceFragment() {
             arrayOf(getString(R.string.widget_tint_system), getString(R.string.widget_tint_light), getString(R.string.widget_tint_dark)), defaults.colorMode) {
             update(defaults.copy(colorMode = it, tintColor = if (it == TwidgetStore.COLOR_MODE_DARK) 0x00000000 else 0x00FFFFFF))
         }
-        val logoValues = arrayOf(TwidgetStore.LOGO_X, TwidgetStore.LOGO_TWITTER)
-        val logoLabels = arrayOf(getString(R.string.widget_logo_x), getString(R.string.widget_logo_twitter))
-        val logoRow = CardItemView(context).apply { title = getString(R.string.widget_logo_style) }
-        fun displayLogo(value: String) {
-            logoRow.summary = logoLabels[logoValues.indexOf(value).coerceAtLeast(0)]
-            logoRow.getEndImageView().setImageResource(
-                if (value == TwidgetStore.LOGO_TWITTER) R.drawable.ic_settings_twitter else R.drawable.ic_logo_x,
-            )
-        }
-        displayLogo(defaults.logo)
-        val logoPreference = LayoutPreference(context, logoRow).apply {
-            key = "settings_widget_logo"
-            setTitle(R.string.widget_logo_style)
-            setAllowDividerAbove(true)
-            setAllowDividerBelow(true)
-            setOnPreferenceChangeListener { _, value ->
-                val logo = value as String
-                update(defaults.copy(logo = logo))
-                displayLogo(logo)
-                true
-            }
-        }
-        val openLogoPicker = {
-            AlertDialog.Builder(context)
-                .setTitle(R.string.widget_logo_style)
-                .setSingleChoiceItems(logoLabels, logoValues.indexOf(defaults.logo).coerceAtLeast(0)) { dialog, index ->
-                    logoPreference.callChangeListener(logoValues[index])
-                    dialog.dismiss()
-                }
-                .setNegativeButton(android.R.string.cancel, null)
-                .show()
-        }
-        logoRow.setOnClickListener { openLogoPicker() }
-        logoPreference.setOnPreferenceClickListener { openLogoPicker(); true }
-        screen.addPreference(logoPreference)
+
         screen.addDescribedPreference(SwitchPreferenceCompat(context).apply {
             key = "settings_widget_contained_footer"
             isPersistent = false

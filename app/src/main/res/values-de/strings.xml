@@ -1033,4 +1033,10 @@
     <string name="brief_api_key_privacy_open_failed">Die Datenschutzerklärung konnte nicht geöffnet werden.</string>
     <string name="widget_contained_footer">Nutzername und Änderung hervorheben</string>
     <string name="widget_contained_footer_summary">Nutzername und Follower-Änderung auf größeren Material-Widgets mit einem Hintergrund anzeigen.</string>
+    <string name="dashboard_streak_days">Tage</string>
+    <string name="streak_card_steady">Stabile Serie</string>
+    <string name="streak_card_record">Neuer Serienrekord</string>
+    <string name="streak_card_save">Rette deine Serie</string>
+    <string name="streak_card_restart">Starte deine Serie neu</string>
+    <string name="settings_app_logo_style">Twitter/X-Logostil</string>
 </resources>

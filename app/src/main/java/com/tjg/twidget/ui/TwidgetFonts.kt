@@ -59,7 +59,10 @@ object TwidgetFonts {
         }
     }
 
-    enum class Role { LABEL, SUMMARY }
+    internal fun cardValueTypeface(context: Context, width: Int): Typeface =
+        googleAppTypeface(context, 400, false, width, 100)
+
+    enum class Role { LABEL, SUMMARY, DASHBOARD_VALUE, STREAK_VALUE, CHART_DELTA }
 
     fun setRole(view: TextView, role: Role) {
         view.setTag(R.id.app_font_role, role)
@@ -165,6 +168,8 @@ object TwidgetFonts {
     fun applyTo(view: View) = applyTo(view, AppAppearance.font(view.context))
 
     private fun applyTo(view: View, font: AppAppearance.Font) {
+        // Card values own their width fitting; global font refreshes must not reset their axes.
+        if (view is CardValueTextView) return
         if (view is TextView) {
             val current = view.typeface ?: Typeface.DEFAULT
             val name = runCatching { view.resources.getResourceEntryName(view.id) }.getOrDefault("")
@@ -187,7 +192,11 @@ object TwidgetFonts {
                 summary -> 400
                 else -> baseline.weight
             }
-            val desired = if (google && section) googleAppTypeface(view.context, 700, baseline.italic, 60, 100)
+            val desired = if (view.getTag(R.id.app_font_role) == Role.CHART_DELTA)
+                oneUiSans(view.context, 400)
+                else if (view.getTag(R.id.app_font_role) in setOf(Role.DASHBOARD_VALUE, Role.STREAK_VALUE))
+                googleAppTypeface(view.context, 400, false, if (view.getTag(R.id.app_font_role) == Role.STREAK_VALUE) 130 else 124, 100)
+                else if (google && section) googleAppTypeface(view.context, 700, baseline.italic, 60, 100)
                 else forApp(view.context, font, weight, baseline.italic)
             // Retain the size already resolved by TextView/SESL. Recomputing it
             // from scaledDensity overrides per-view sizes and Android's nonlinear

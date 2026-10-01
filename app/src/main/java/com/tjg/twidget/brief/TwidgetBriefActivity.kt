@@ -447,13 +447,13 @@ class TwidgetBriefActivity : FoldablePopOverActivity() {
         }, matchWrap(top = 10))
 
         post.media.firstOrNull()?.let { media ->
-            addView(ImageView(context).apply {
+            addView(com.tjg.twidget.ui.MediaAspectImageView(context).apply {
                 contentDescription = media.alt.ifBlank { getString(R.string.post_media) }
-                scaleType = ImageView.ScaleType.CENTER_CROP
+                scaleType = ImageView.ScaleType.FIT_CENTER
                 ProfileImageLoader.loadMediaInto(context, this, media.url, dp(14))
             }, LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(218),
+                LinearLayout.LayoutParams.WRAP_CONTENT,
             ).apply { topMargin = dp(10) })
         }
 
@@ -649,9 +649,9 @@ class TwidgetBriefActivity : FoldablePopOverActivity() {
         }, matchWrap(top = 10))
 
         firstPost?.media?.firstOrNull()?.let { media ->
-            addView(ImageView(context).apply {
+            addView(com.tjg.twidget.ui.MediaAspectImageView(context).apply {
                 contentDescription = getString(R.string.post_media)
-                scaleType = ImageView.ScaleType.CENTER_CROP
+                scaleType = ImageView.ScaleType.FIT_CENTER
                 when (media) {
                     is LocalUriMedia -> {
                         background = AppCompatResources.getDrawable(context, R.drawable.schedule_media_preview_bg)
@@ -668,7 +668,7 @@ class TwidgetBriefActivity : FoldablePopOverActivity() {
                 }
             }, LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(218),
+                LinearLayout.LayoutParams.WRAP_CONTENT,
             ).apply { topMargin = dp(10) })
         }
 
@@ -724,9 +724,9 @@ class TwidgetBriefActivity : FoldablePopOverActivity() {
         firstTweet?.media
             ?.firstOrNull { media -> media.mimeType?.startsWith("image/", ignoreCase = true) != false }
             ?.let { media ->
-            addView(ImageView(context).apply {
+            addView(com.tjg.twidget.ui.MediaAspectImageView(context).apply {
                 contentDescription = getString(R.string.post_media)
-                scaleType = ImageView.ScaleType.CENTER_CROP
+                scaleType = ImageView.ScaleType.FIT_CENTER
                 when (media) {
                     is LocalUriMedia -> {
                         background = AppCompatResources.getDrawable(context, R.drawable.schedule_media_preview_bg)
@@ -743,7 +743,7 @@ class TwidgetBriefActivity : FoldablePopOverActivity() {
                 }
             }, LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(218),
+                LinearLayout.LayoutParams.WRAP_CONTENT,
             ).apply { topMargin = dp(10) })
         }
 

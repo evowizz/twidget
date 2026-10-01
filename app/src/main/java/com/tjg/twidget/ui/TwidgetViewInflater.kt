@@ -10,6 +10,9 @@ import androidx.appcompat.app.AppCompatViewInflater
 @Keep
 class TwidgetViewInflater : AppCompatViewInflater() {
     private fun <T : View> T.withAppFont(): T = apply {
+        // Popup menus measure detached rows before showing their window. Set the
+        // final font now so their content height includes any wrapped titles.
+        TwidgetFonts.applyTo(this)
         addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
             override fun onViewAttachedToWindow(view: View) {
                 TwidgetFonts.observeWindow(view.rootView)

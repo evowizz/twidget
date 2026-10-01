@@ -419,7 +419,7 @@ object TwidgetStore {
         return TwidgetWidgetSettings(
             tintAlpha = prefs.getInt("widget_tint_alpha$suffix", prefs.getInt("widget_tint_alpha", 205)).coerceIn(30, 245),
             tintColor = prefs.getInt("widget_tint_color$suffix", prefs.getInt("widget_tint_color", 0x00FFFFFF)),
-            logo = prefs.getString("widget_logo$suffix", prefs.getString("widget_logo", LOGO_X)) ?: LOGO_X,
+            logo = prefs.getString("widget_logo$suffix", prefs.getString("widget_logo", if (appWidgetId == 0) com.tjg.twidget.ui.AppAppearance.logo(context) else LOGO_X)) ?: LOGO_X,
             tapAction = prefs.getString("widget_tap_action$suffix", prefs.getString(KEY_TAP_ACTION, TAP_REFRESH)) ?: TAP_REFRESH,
             accountUsername = prefs.getString("widget_account$suffix", "") ?: "",
             colorMode = prefs.getString("widget_color_mode$suffix", prefs.getString("widget_color_mode", COLOR_MODE_SYSTEM)) ?: COLOR_MODE_SYSTEM,

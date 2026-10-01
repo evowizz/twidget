@@ -83,11 +83,29 @@ class TopFollowersBrowseActivity : FoldablePopOverActivity() {
             initialPrefetchItemCount = 0
         }
         listView.adapter = adapter
-        listView.seslSetScrollbarVerticalPadding(dp(26), dp(26))
+        listView.seslSetFastScrollerEnabled(true)
+        com.tjg.twidget.ui.SeslFastScrollerTypography.applyTo(listView)
         listView.seslSetGoToTopEnabled(true)
-        listView.background = GradientDrawable().apply {
+        listView.seslSetOnGoToTopClickListener { recycler ->
+            (recycler.layoutManager as LinearLayoutManager).scrollToPositionWithOffset(0, 0)
+            toolbarLayout.setExpanded(false, false)
+            recycler.seslHideGoToTop()
+            true
+        }
+        var surfaceHeight = 0
+        listView.background = object : GradientDrawable() {
+            override fun draw(canvas: android.graphics.Canvas) {
+                setBounds(0, 0, listView.width, surfaceHeight)
+                super.draw(canvas)
+            }
+        }.apply {
             cornerRadius = dp(28).toFloat()
             setColor(getColor(R.color.oneui_card_bg))
+        }
+        listView.outlineProvider = object : android.view.ViewOutlineProvider() {
+            override fun getOutline(view: View, outline: android.graphics.Outline) {
+                outline.setRoundRect(0, 0, view.width, surfaceHeight, dp(28).toFloat())
+            }
         }
         listView.clipToOutline = true
 
@@ -121,22 +139,54 @@ class TopFollowersBrowseActivity : FoldablePopOverActivity() {
             }
         })
         updateSearchWidth()
-        // Reserve scrollable space for the native search bar; content can still
-        // move behind it, and the final follower can be brought fully above it.
+        // Float search over the full-height list.
         applyEdgeToEdgeInsets(toolbarLayout) { navigationInset ->
             searchView.updateBottomMarginForNavigationBar(0, navigationInset)
+            updateSearchWidth()
         }
 
         // AppBarLayout's scrolling child can extend below the window while the
         // header is expanded. Use the actual overlap, not just the bar's height.
         val listPosition = IntArray(2)
         val searchPosition = IntArray(2)
+        val toolbarPosition = IntArray(2)
+        var scrollbarTop = -1
+        var scrollbarBottom = -1
         listView.viewTreeObserver.addOnPreDrawListener {
             listView.getLocationInWindow(listPosition)
             searchView.getLocationInWindow(searchPosition)
-            val bottomPadding = (listPosition[1] + listView.height - searchPosition[1]).coerceAtLeast(0) + dp(4)
-            if (listView.paddingBottom != bottomPadding) {
-                listView.setPadding(listView.paddingLeft, listView.paddingTop, listView.paddingRight, bottomPadding)
+            toolbarLayout.toolbar.getLocationInWindow(toolbarPosition)
+            val firstVisible = (listView.layoutManager as LinearLayoutManager).findFirstVisibleItemPosition()
+            adapter.currentList.getOrNull(firstVisible)?.let {
+                com.tjg.twidget.ui.SeslFastScrollerTypography.setPreviewRank(listView, it.rank)
+            }
+            val trackTop = (toolbarPosition[1] + toolbarLayout.toolbar.height - listPosition[1])
+                .coerceAtLeast(0)
+            val trackBottom = (listPosition[1] + listView.height - searchPosition[1]).coerceAtLeast(0)
+            val goToTopPadding = trackBottom + dp(8)
+            if (listView.seslGetGoToTopBottomPadding() != goToTopPadding) {
+                listView.seslSetGoToTopBottomPadding(goToTopPadding)
+            }
+            // Scroll clearance belongs to the viewport, not the rounded card surface.
+            val clearance = trackBottom + dp(12)
+            if (listView.paddingBottom != clearance) {
+                listView.setPadding(listView.paddingLeft, listView.paddingTop, listView.paddingRight, clearance)
+            }
+            val lastRow = listView.findViewHolderForAdapterPosition(adapter.itemCount - 1)?.itemView
+            val targetSurfaceHeight = (lastRow?.let { it.bottom + dp(4) } ?: listView.height)
+                .coerceIn(0, listView.height)
+            if (surfaceHeight != targetSurfaceHeight) {
+                surfaceHeight = targetSurfaceHeight
+                listView.invalidateOutline()
+                listView.invalidate()
+            }
+            // SESL already applies floating-toolbar offsets and list padding.
+            val additionalTop = trackTop - listView.paddingTop - listView.seslGetScrollBarTopOffset()
+            val additionalBottom = trackBottom - listView.paddingBottom - listView.seslGetScrollBarBottomOffset()
+            if (additionalTop != scrollbarTop || additionalBottom != scrollbarBottom) {
+                scrollbarTop = additionalTop
+                scrollbarBottom = additionalBottom
+                listView.seslSetFastScrollerAdditionalPadding(additionalTop, additionalBottom)
             }
             true
         }
@@ -265,8 +315,10 @@ class TopFollowersBrowseActivity : FoldablePopOverActivity() {
     }
 
     private fun updateSearchWidth() {
-        searchView.findViewById<View>(androidx.appcompat.R.id.search_voice_btn).isSelected = searchView.hasFocus()
-        val width = resources.getDimensionPixelSize(if (searchView.hasFocus() || query.isNotBlank()) {
+        val keyboardActive = androidx.core.view.ViewCompat.getRootWindowInsets(toolbarLayout)
+            ?.isVisible(androidx.core.view.WindowInsetsCompat.Type.ime()) == true
+        searchView.findViewById<View>(androidx.appcompat.R.id.search_voice_btn).isSelected = keyboardActive
+        val width = resources.getDimensionPixelSize(if (keyboardActive) {
             androidx.appcompat.R.dimen.sesl_search_view_preferred_width
         } else {
             R.dimen.top_followers_search_compact_width
@@ -294,7 +346,17 @@ class TopFollowersBrowseActivity : FoldablePopOverActivity() {
 
     private class FollowerAdapter(
         private val onClick: (TopFollower) -> Unit,
-    ) : ListAdapter<RankedTopFollower, FollowerAdapter.Holder>(DIFF) {
+    ) : ListAdapter<RankedTopFollower, FollowerAdapter.Holder>(DIFF), android.widget.SectionIndexer {
+        private val checkpoints get() = followerCheckpointPositions(itemCount)
+
+        override fun getSections(): Array<String> = checkpoints.map { currentList[it].rank.toString() }.toTypedArray()
+
+        override fun getPositionForSection(sectionIndex: Int): Int =
+            checkpoints.let { if (it.isEmpty()) 0 else it[sectionIndex.coerceIn(it.indices)] }
+
+        override fun getSectionForPosition(position: Int): Int =
+            checkpoints.indexOfLast { it <= position }.coerceAtLeast(0)
+
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
             val view = LayoutInflater.from(parent.context)
                 .inflate(R.layout.item_top_follower_row, parent, false)

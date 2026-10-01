@@ -50,3 +50,12 @@
 
 # Preserve line numbers for crash reports
 -renamesourcefileattribute SourceFile
+
+# SESL exposes no setter for the native fast-scroller overlay typeface.
+-keepclassmembers class androidx.recyclerview.widget.RecyclerView {
+    *** mFastScroller;
+}
+-keepclassmembers class androidx.recyclerview.widget.SeslRecyclerViewFastScroller {
+    android.widget.TextView mPrimaryText;
+    android.widget.TextView mSecondaryText;
+}

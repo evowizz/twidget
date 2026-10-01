@@ -56,9 +56,17 @@ internal class TopFollowersCardBinder(
                     topMargin = dp(110 + index * 54)
                 })
             }
-            addView(label(activity.getString(R.string.top_followers_question), 14f, primaryColor, 700).apply {
+            addView(LinearLayout(activity).apply {
                 gravity = Gravity.CENTER
-            }, matchFrameParams(19).apply { topMargin = dp(20) })
+                addView(ImageView(activity).apply {
+                    setImageResource(com.tjg.twidget.ui.AppAppearance.logoDrawable(context))
+                    imageTintList = ColorStateList.valueOf(secondaryColor)
+                    contentDescription = null
+                }, LinearLayout.LayoutParams(dp(16), dp(16)))
+                addView(label(activity.getString(R.string.top_followers_question), 14f, secondaryColor, 700),
+                    LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+                        .apply { marginStart = dp(10) })
+            }, matchFrameParams(19).apply { topMargin = dp(22) })
             addView(label(activity.getString(R.string.top_followers_hero), 48f, accentColor, 700).apply {
                 gravity = Gravity.CENTER
                 maxLines = 1
@@ -142,7 +150,12 @@ internal class TopFollowersCardBinder(
                 contentDescription = "$title. ${activity.getString(R.string.top_followers_view_all)}"
                 setOnClickListener { openBrowse(account) }
             }
-            addView(label(title, 13f, secondaryColor, 700).apply { gravity = Gravity.CENTER_VERTICAL },
+            addView(ImageView(activity).apply {
+                setImageResource(com.tjg.twidget.ui.AppAppearance.logoDrawable(context))
+                imageTintList = ColorStateList.valueOf(secondaryColor)
+                contentDescription = null
+            }, LinearLayout.LayoutParams(dp(16), dp(16)).apply { marginEnd = dp(10) })
+            addView(label(title, 14f, secondaryColor, 700).apply { gravity = Gravity.CENTER_VERTICAL },
                 LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f))
             addView(ImageView(activity).apply {
                 setImageDrawable(AppCompatResources.getDrawable(activity, OneUiIconR.drawable.ic_oui_keyboard_arrow_right))
@@ -184,13 +197,25 @@ internal class TopFollowersCardBinder(
             addView(LinearLayout(activity).apply {
                 orientation = LinearLayout.VERTICAL
                 gravity = Gravity.CENTER_VERTICAL
-                addView(label(follower.name, 16f, primaryColor, 700).apply {
+                addView(label(follower.name, 20f, primaryColor, 700).apply {
+                    includeFontPadding = true
+                    gravity = Gravity.START
+                    textAlignment = View.TEXT_ALIGNMENT_VIEW_START
+                    textDirection = View.TEXT_DIRECTION_FIRST_STRONG
                     maxLines = 1; ellipsize = TextUtils.TruncateAt.END
-                }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(23)))
-                addView(label("@${follower.username}", 12f, secondaryColor, 400).apply {
+                }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+                addView(label("@${follower.username}", 14f, secondaryColor, 400).apply {
+                    includeFontPadding = true
+                    gravity = Gravity.START
+                    textAlignment = View.TEXT_ALIGNMENT_VIEW_START
+                    textDirection = View.TEXT_DIRECTION_LTR
                     maxLines = 1; ellipsize = TextUtils.TruncateAt.END
-                }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(17)))
-            }, LinearLayout.LayoutParams(0, dp(48), 1f).apply { marginStart = dp(10); marginEnd = dp(8) })
+                }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                    topMargin = dp(2)
+                })
+            }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                marginStart = dp(10); marginEnd = dp(8)
+            })
             addView(communityIcon(primaryColor), LinearLayout.LayoutParams(dp(18), dp(18)))
             addView(label(TwidgetStore.compactNumber(follower.followers), 12f, secondaryColor, 400).apply {
                 gravity = Gravity.END or Gravity.CENTER_VERTICAL; maxLines = 1
