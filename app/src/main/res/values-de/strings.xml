@@ -1080,4 +1080,6 @@
     <string name="debug_haptics_thud">Dumpfer Stoß</string>
     <string name="debug_haptics_spin">Drehung</string>
     <string name="debug_haptics_stop">Wiedergabe stoppen</string>
+    <string name="debug_haptics_force_waveforms">Wellenformen erzwingen</string>
+    <string name="debug_haptics_force_waveforms_summary">Wellenform-Annäherungen für primitive Effekte in der gesamten App verwenden. System-Aktionsfeedback bleibt unverändert.</string>
 </resources>

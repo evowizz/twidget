@@ -105,7 +105,12 @@ class TwidgetBriefActivity : FoldablePopOverActivity() {
         if (intent.getBooleanExtra(EXTRA_FROM_ONBOARDING, false)) {
             prepareOnboardingBackgroundTransition()
         }
-        afterFirstFrame(::loadInitialBrief)
+        afterFirstFrame {
+            if (savedInstanceState == null) {
+                com.tjg.twidget.ui.TwidgetHaptics.quickRise(findViewById(R.id.brief_root))
+            }
+            loadInitialBrief()
+        }
     }
 
     private fun loadInitialBrief() {

@@ -6,6 +6,7 @@ import android.provider.Settings
 import android.view.View
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
+import androidx.preference.SwitchPreferenceCompat
 import com.tjg.twidget.R
 import com.tjg.twidget.ui.FoldablePopOverActivity
 import com.tjg.twidget.ui.InsetPreferenceFragment
@@ -34,6 +35,19 @@ class HapticsDebugPreferenceFragment : InsetPreferenceFragment() {
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         val context = requireContext()
         val screen = preferenceManager.createPreferenceScreen(context)
+        screen.addPreference(SwitchPreferenceCompat(context).apply {
+            key = "haptics_force_waveforms"
+            title = getString(R.string.debug_haptics_force_waveforms)
+            summary = getString(R.string.debug_haptics_force_waveforms_summary)
+            isPersistent = false
+            isChecked = TwidgetHaptics.forceWaveforms(context)
+            setOnPreferenceChangeListener { _, value ->
+                stopPlayback()
+                TwidgetHaptics.setForceWaveforms(context, value as Boolean)
+                updatePrimitiveAvailability()
+                true
+            }
+        })
         screen.addPreference(Preference(context).apply {
             key = "haptics_status"
             title = getString(R.string.debug_haptics_settings)
@@ -88,7 +102,7 @@ class HapticsDebugPreferenceFragment : InsetPreferenceFragment() {
             3 to R.string.debug_haptics_spin,
         ).forEach { (primitive, title) ->
             val target = requireActivity().findViewById<View>(R.id.preference_fragment_container)
-            action("haptics_primitive_$primitive", title, TwidgetHaptics.supportsPrimitive(target, primitive)) {
+            action("haptics_primitive_$primitive", title, TwidgetHaptics.canPreviewPrimitive(target, primitive)) {
                 cancelPlayback = TwidgetHaptics.previewPrimitive(it, primitive)
             }
         }
@@ -99,11 +113,22 @@ class HapticsDebugPreferenceFragment : InsetPreferenceFragment() {
 
     override fun onResume() {
         super.onResume()
+        updatePrimitiveAvailability()
         findPreference<Preference>("haptics_status")?.summary = getString(
             if (Settings.System.getInt(requireContext().contentResolver,
                     Settings.System.HAPTIC_FEEDBACK_ENABLED, 1) != 0)
                 R.string.debug_haptics_enabled else R.string.debug_haptics_disabled,
         )
+    }
+
+    private fun updatePrimitiveAvailability() {
+        val target = requireActivity().findViewById<View>(R.id.preference_fragment_container)
+        for (primitive in 1..8) {
+            findPreference<Preference>("haptics_primitive_$primitive")?.apply {
+                isEnabled = TwidgetHaptics.canPreviewPrimitive(target, primitive)
+                summary = if (isEnabled) null else getString(R.string.debug_haptics_unsupported)
+            }
+        }
     }
 
     override fun onStop() {

@@ -1119,4 +1119,6 @@
     <string name="debug_haptics_thud">Thud</string>
     <string name="debug_haptics_spin">Spin</string>
     <string name="debug_haptics_stop">Stop playback</string>
+    <string name="debug_haptics_force_waveforms">Force waveforms</string>
+    <string name="debug_haptics_force_waveforms_summary">Use waveform approximations for primitive effects throughout the app. Platform action feedback stays unchanged.</string>
 </resources>

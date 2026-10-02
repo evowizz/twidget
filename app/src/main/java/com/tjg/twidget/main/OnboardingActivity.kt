@@ -53,6 +53,7 @@ import com.tjg.twidget.ui.ProfileImageLoader
 import com.tjg.twidget.widget.LockScreenFollowerViews
 import com.tjg.twidget.widget.TwidgetWidget
 import com.tjg.twidget.widget.WidgetArtworkRenderer
+import com.tjg.twidget.ui.TwidgetHaptics
 import dev.oneuiproject.oneui.widget.AdaptiveCoordinatorLayout
 
 class OnboardingActivity : EdgeToEdgeActivity() {
@@ -105,6 +106,11 @@ class OnboardingActivity : EdgeToEdgeActivity() {
         setupPermissionRows()
         setupShareHistoryCheckbox()
         renderStep(animate = false)
+        if (savedInstanceState == null && step == STEP_OVERVIEW) {
+            findViewById<View>(R.id.onboarding_root).post {
+                if (!isFinishing && !isDestroyed) TwidgetHaptics.quickRise(findViewById(R.id.onboarding_root))
+            }
+        }
     }
 
     private fun setupWelcomeScreen() {
@@ -344,6 +350,9 @@ class OnboardingActivity : EdgeToEdgeActivity() {
         if (step == STEP_PERMISSIONS) renderPermissionState()
         settleBackground(animate)
         if (animate) {
+            if (step == STEP_OVERVIEW || step == STEP_DONE) {
+                TwidgetHaptics.quickRise(findViewById(R.id.onboarding_root))
+            }
             // The "all set" title rises further and slower, settling into the
             // vertical centre; every other step gets the quiet lift.
             val rise = if (step == STEP_DONE) 48f else 18f
