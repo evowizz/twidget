@@ -28,9 +28,41 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 @SdkSuppress(minSdkVersion = 29)
 class MainAddCardDrawerInstrumentedTest {
+    @Test fun darkEditShadowRemainsVisibleAgainstBlack() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        instrumentation.runOnMainSync {
+            val context = instrumentation.targetContext
+            val configuration = android.content.res.Configuration(context.resources.configuration).apply {
+                uiMode = (uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK.inv()) or
+                    android.content.res.Configuration.UI_MODE_NIGHT_YES
+            }
+            val darkContext = context.createConfigurationContext(configuration)
+            val density = darkContext.resources.displayMetrics.density
+            fun dp(value: Int) = (value * density).toInt()
+            val shadow = com.tjg.twidget.ui.CardShadowView(darkContext, dp(20).toFloat())
+            shadow.layout(0, 0, dp(172), dp(152))
+            val bitmap = Bitmap.createBitmap(shadow.width, shadow.height, Bitmap.Config.ARGB_8888)
+            bitmap.eraseColor(Color.BLACK)
+            shadow.draw(Canvas(bitmap))
+            assertTrue("Dark shadow is visible just outside the card",
+                Color.red(bitmap.getPixel(dp(32), dp(76))) > 0)
+            assertEquals("Compact shadow stays clear of the distant clipping edge", Color.BLACK,
+                bitmap.getPixel(dp(16), dp(76)))
+            bitmap.recycle()
+        }
+    }
+
     @Test fun drawerShowsPreviewsAndAddsCardsWithoutDuplicates() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         var gestureDownTime = 0L
+        fun cancelTouch() {
+            val now = SystemClock.uptimeMillis()
+            val event = MotionEvent.obtain(now, now, MotionEvent.ACTION_CANCEL, 0f, 0f, 0)
+            event.source = InputDevice.SOURCE_TOUCHSCREEN
+            instrumentation.uiAutomation.injectInputEvent(event, true)
+            event.recycle()
+        }
+        cancelTouch()
         fun touch(action: Int, x: Float, y: Float) {
             if (action == MotionEvent.ACTION_DOWN) gestureDownTime = SystemClock.uptimeMillis()
             val event = MotionEvent.obtain(gestureDownTime, SystemClock.uptimeMillis(), action, x, y, 0)
@@ -39,6 +71,23 @@ class MainAddCardDrawerInstrumentedTest {
             event.recycle()
         }
         val context = instrumentation.targetContext
+        fun observeTransition(activity: MainActivity, appears: Boolean): java.util.concurrent.atomic.AtomicBoolean {
+            val observed = java.util.concurrent.atomic.AtomicBoolean(false)
+            val grid = activity.findViewById<ViewGroup>(R.id.dashboard_content)
+            lateinit var listener: android.view.ViewTreeObserver.OnPreDrawListener
+            listener = android.view.ViewTreeObserver.OnPreDrawListener {
+                val card = grid.getChildAt(0) as? ViewGroup
+                if (card != null && card.scaleX > 0.9701f && card.scaleX < 0.9999f &&
+                    (!appears || card.getChildAt(0).alpha in 0.001f..0.999f)) {
+                    observed.set(true)
+                    grid.viewTreeObserver.removeOnPreDrawListener(listener)
+                }
+                true
+            }
+            grid.viewTreeObserver.addOnPreDrawListener(listener)
+            grid.postDelayed({ if (grid.viewTreeObserver.isAlive) grid.viewTreeObserver.removeOnPreDrawListener(listener) }, 1000)
+            return observed
+        }
         val prefs = context.getSharedPreferences(TwidgetStore.PREFS, Context.MODE_PRIVATE)
         val saved = prefs.all
         try {
@@ -77,19 +126,17 @@ class MainAddCardDrawerInstrumentedTest {
                         .setExpanded(false, animate = false)
                 }
                 SystemClock.sleep(150)
+                lateinit var entryObserved: java.util.concurrent.atomic.AtomicBoolean
                 scenario.onActivity {
                     assertTrue("Bottom edit button is available in normal mode",
                         it.findViewById<View>(R.id.dashboard_edit_button).isShown)
+                    entryObserved = observeTransition(it, appears = true)
                     it.findViewById<View>(R.id.dashboard_edit_button).performClick()
                     assertTrue("Bottom button enters edit mode", it.editModeController.editMode)
                     assertEquals(View.GONE, it.findViewById<View>(R.id.dashboard_edit_button).visibility)
                 }
-                SystemClock.sleep(150)
-                scenario.onActivity { activity ->
-                    val card = activity.findViewById<ViewGroup>(R.id.dashboard_content).getChildAt(0) as ViewGroup
-                    assertTrue("Edit entry has a visible intermediate size", card.scaleX > 0.97f && card.scaleX < 1f)
-                    assertTrue("Edit shadow gradually appears", card.getChildAt(0).alpha > 0f && card.getChildAt(0).alpha < 1f)
-                }
+                SystemClock.sleep(400)
+                assertTrue("Edit entry animates card size and shadow across intermediate frames", entryObserved.get())
                 scenario.onActivity { it.editModeController.setEditMode(false) }
                 SystemClock.sleep(250)
                 scenario.onActivity { activity ->
@@ -103,10 +150,13 @@ class MainAddCardDrawerInstrumentedTest {
                     val wrapper = activity.findViewById<ViewGroup>(R.id.dashboard_content).getChildAt(0) as ViewGroup
                     val content = wrapper.getChildAt(1)
                     content.setOnClickListener { editContentClicks++ }
-                    content.getGlobalVisibleRect(editTapBounds)
                     assertEquals(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS, content.importantForAccessibility)
                 }
-                SystemClock.sleep(200)
+                SystemClock.sleep(300)
+                scenario.onActivity { activity ->
+                    val wrapper = activity.findViewById<ViewGroup>(R.id.dashboard_content).getChildAt(0) as ViewGroup
+                    assertTrue("Edited card has laid out before tapping", wrapper.getChildAt(1).getGlobalVisibleRect(editTapBounds))
+                }
                 touch(MotionEvent.ACTION_DOWN, editTapBounds.centerX().toFloat(), editTapBounds.centerY().toFloat())
                 touch(MotionEvent.ACTION_UP, editTapBounds.centerX().toFloat(), editTapBounds.centerY().toFloat())
                 scenario.onActivity { activity ->
@@ -251,13 +301,13 @@ class MainAddCardDrawerInstrumentedTest {
                     scrollView.getGlobalVisibleRect(viewport)
                     dashboard.getChildAt(0).getGlobalVisibleRect(pickup)
                 }
-                scenario.onActivity { it.editModeController.setEditMode(false) }
-                SystemClock.sleep(150)
+                lateinit var exitObserved: java.util.concurrent.atomic.AtomicBoolean
                 scenario.onActivity {
-                    val card = it.findViewById<ViewGroup>(R.id.dashboard_content).getChildAt(0)
-                    assertTrue("Exit smoothly restores card size", card.scaleX > 0.97f && card.scaleX < 1f)
+                    exitObserved = observeTransition(it, appears = false)
+                    it.editModeController.setEditMode(false)
                 }
-                SystemClock.sleep(450)
+                SystemClock.sleep(400)
+                assertTrue("Exit smoothly restores card size", exitObserved.get())
                 scenario.onActivity {
                     val card = it.findViewById<ViewGroup>(R.id.dashboard_content).getChildAt(0) as ViewGroup
                     assertFalse("Normal mode cards have no shadow", card.getChildAt(0) is com.tjg.twidget.ui.CardShadowView)
@@ -295,6 +345,7 @@ class MainAddCardDrawerInstrumentedTest {
                 touch(MotionEvent.ACTION_UP, x, (viewport.top + 12).toFloat())
             }
         } finally {
+            cancelTouch()
             prefs.edit().clear().apply {
                 saved.forEach { (key, value) -> when (value) {
                     is String -> putString(key, value)

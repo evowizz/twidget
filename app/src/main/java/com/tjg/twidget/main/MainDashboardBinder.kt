@@ -186,7 +186,7 @@ internal class MainDashboardBinder(
                     val initialAlpha = decorations.associateWith { it.alpha }
                     val targetScale = if (enabled) EDIT_CARD_SCALE else 1f
                     android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
-                        duration = 320L
+                        duration = 220L
                         interpolator = easing
                         addUpdateListener {
                             if (!card.isAttachedToWindow || generation != editTransitionGeneration) { cancel(); return@addUpdateListener }
@@ -587,7 +587,7 @@ internal class MainDashboardBinder(
                     background = GradientDrawable().apply {
                         cornerRadius = radius
                         setColor(Color.TRANSPARENT)
-                        setStroke(activity.dp(1), 0x33000000)
+                        setStroke(activity.dp(1), activity.getColor(R.color.dashboard_edit_border))
                     }
                     importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
                 }, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))

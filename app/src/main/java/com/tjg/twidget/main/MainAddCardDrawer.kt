@@ -89,13 +89,14 @@ internal class MainAddCardDrawer(
 
     private fun sheetWidth(): Int {
         val windowWidth = activity.resources.configuration.screenWidthDp
-        return activity.dp(if (windowWidth >= 600) (windowWidth * 0.86f).toInt() else minOf(392, windowWidth))
+        return activity.dp(if (windowWidth >= 600) (windowWidth * 0.90f).toInt() else (windowWidth - 24).coerceAtLeast(0))
     }
 
     private fun maxSheetHeight(): Int = minOf(activity.dp(746), (activity.resources.displayMetrics.heightPixels * 0.84f).toInt())
     private var expandedGroup: DashboardCardGroup? = null
     private var drawerRoot: LinearLayout? = null
     private var heightAnimator: ValueAnimator? = null
+    private val pendingPanels = mutableMapOf<DashboardCardGroup, () -> Unit>()
     private val sections = linkedMapOf<DashboardCardGroup, AccordionSection>()
 
     private inner class AccordionSection : FrameLayout(activity) {
@@ -160,6 +161,7 @@ internal class MainAddCardDrawer(
 
     private fun animateSections(startHeights: Map<DashboardCardGroup, Int> = sections.mapValues { it.value.revealHeight }) {
         heightAnimator?.cancel()
+        expandedGroup?.let { pendingPanels.remove(it)?.invoke() }
         val targetHeights = sections.mapValues { (group, section) ->
             section.panels.measure(View.MeasureSpec.makeMeasureSpec(content.width.takeIf { it > 0 } ?: sheetWidth(), View.MeasureSpec.EXACTLY),
                 View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
@@ -183,7 +185,7 @@ internal class MainAddCardDrawer(
             return
         }
         val animator = ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = 360L
+            duration = 260L
             interpolator = PathInterpolator(0.22f, 0.1f, 0.18f, 1f)
             addUpdateListener { applyFraction(it.animatedValue as Float) }
             addListener(object : AnimatorListenerAdapter() {
@@ -205,6 +207,7 @@ internal class MainAddCardDrawer(
         heightAnimator?.cancel()
         heightAnimator = null
         sections.clear()
+        pendingPanels.clear()
         content.removeAllViews()
         val current = TwidgetStore.dashboardCards(activity).toSet()
         val eligible = controller.availableDashboardCards()
@@ -274,8 +277,8 @@ internal class MainAddCardDrawer(
             content.addView(row)
             val section = AccordionSection().apply {
                 transitionName = "catalogue_section_${group.name}"
-                hidden.forEach { card -> panels.addView(cardPanel(card)) }
             }
+            pendingPanels[group] = { hidden.forEach { card -> section.panels.addView(cardPanel(card)) } }
             sections[group] = section
             content.addView(section, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
             if (group != DashboardCardGroup.entries.last()) content.addView(View(activity).apply {
@@ -353,15 +356,12 @@ internal class MainAddCardDrawer(
         val previewRadius = ((cardView.background as? GradientDrawable)?.cornerRadius?.takeIf { it > 0f }
             ?: activity.dp(if (card == DashboardCardType.TOP_FOLLOWERS || card == DashboardCardType.MILESTONE) 28 else 22).toFloat()) * scale
         val shadow = object : FrameLayout(activity) {
-            private val shadowPaint = com.tjg.twidget.ui.CardShadow.paint(activity)
+            private val renderer = com.tjg.twidget.ui.CardShadow.renderer(activity, previewRadius)
             override fun dispatchDraw(canvas: Canvas) {
-                canvas.drawRoundRect(shadowPadding.toFloat(), shadowPadding.toFloat(),
-                    (shadowPadding + previewWidth).toFloat(), (shadowPadding + previewHeight).toFloat(),
-                    previewRadius, previewRadius, shadowPaint)
+                renderer.draw(canvas, width, height)
                 super.dispatchDraw(canvas)
             }
         }.apply {
-            setLayerType(View.LAYER_TYPE_SOFTWARE, null)
             addView(preview, FrameLayout.LayoutParams(previewWidth, previewHeight).apply {
                 leftMargin = shadowPadding
                 topMargin = shadowPadding
