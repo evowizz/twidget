@@ -191,6 +191,7 @@ class MainActivity : ScheduleQueueHostActivity() {
     }
 
     override fun onStop() {
+        editModeController.finishDashboardDrag(commit = false)
         runCatching { unregisterReceiver(bangerUpdateReceiver) }
         runCatching { unregisterReceiver(topFollowersUpdateReceiver) }
         super.onStop()

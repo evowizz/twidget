@@ -53,6 +53,22 @@
                     android:paddingEnd="5dp"
                     android:useDefaultMargins="false" />
 
+                <TextView
+                    android:id="@+id/dashboard_edit_button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginTop="28dp"
+                    android:layout_marginBottom="20dp"
+                    android:padding="10dp"
+                    android:gravity="center"
+                    android:minHeight="48dp"
+                    android:text="@string/edit_dashboard"
+                    android:textColor="@color/oneui_text_secondary"
+                    android:textSize="14sp"
+                    android:clickable="true"
+                    android:focusable="true" />
+
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 </LinearLayout>

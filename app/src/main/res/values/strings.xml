@@ -1078,4 +1078,19 @@
     <string name="streak_card_save">Save your streak</string>
     <string name="streak_card_restart">Restart your streak</string>
     <string name="settings_app_logo_style">Twitter/X Logo style</string>
+    <string name="card_catalogue_hint">Tap a card preview to add it to your dashboard.</string>
+    <string name="card_group_metrics">Account and audience</string>
+    <string name="card_group_growth">Growth and activity</string>
+    <string name="card_group_posts">Tweet analysis</string>
+    <string name="card_group_x">X analytics</string>
+    <string name="card_group_community">Brief and community</string>
+    <string name="card_catalogue_all_added">All added</string>
+    <string name="card_catalogue_half_width">Half width</string>
+    <string name="card_catalogue_full_width">Full width</string>
+    <string name="card_catalogue_add_named">Add %1$s</string>
+    <string name="card_catalogue_added">%1$s added to dashboard</string>
+    <plurals name="card_catalogue_available">
+        <item quantity="one">%d card available</item>
+        <item quantity="other">%d cards available</item>
+    </plurals>
 </resources>

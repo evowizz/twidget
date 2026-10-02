@@ -86,9 +86,10 @@ internal class TopFollowersCardBinder(
                     else -> R.string.top_followers_enable_shared_history
                 })
                 isAllCaps = false
-                textSize = 20f
+                textSize = 14f
                 setTextColor(Color.WHITE)
-                typeface = weightedTypeface(700)
+                typeface = weightedTypeface(600)
+                setPadding(dp(20), dp(10), dp(20), dp(10))
                 stateListAnimator = null
                 elevation = dp(8).toFloat()
                 background = rounded(accentColor, 28f)
@@ -99,7 +100,7 @@ internal class TopFollowersCardBinder(
                     }
                 }
                 contentDescription = if (state.error.isBlank()) text else "${text}. ${state.error}"
-            }, frameParams(206, 60).apply {
+            }, FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, dp(48)).apply {
                 gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
                 topMargin = dp(151)
             })
