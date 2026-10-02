@@ -1054,4 +1054,30 @@
         <item quantity="one">%d Karte verfügbar</item>
         <item quantity="other">%d Karten verfügbar</item>
     </plurals>
+    <string name="debug_haptics_title">Haptik</string>
+    <string name="debug_haptics_settings">Berührungsfeedback</string>
+    <string name="debug_haptics_enabled">Tippe auf einen Effekt, um ihn auszuprobieren. Die Systemeinstellungen für Berührungsfeedback werden berücksichtigt.</string>
+    <string name="debug_haptics_disabled">Berührungsfeedback ist im System deaktiviert. Aktiviere es in den Geräteeinstellungen, um die Effekte auszuprobieren.</string>
+    <string name="debug_haptics_actions">App-Effekte</string>
+    <string name="debug_haptics_unsupported">Auf diesem Gerät nicht unterstützt</string>
+    <string name="debug_haptics_hold">Ansteigendes Haltefeedback → Bearbeitungsimpuls</string>
+    <string name="debug_haptics_enter">Bearbeitungsmodus öffnen</string>
+    <string name="debug_haptics_exit">Bearbeitungsmodus verlassen</string>
+    <string name="debug_haptics_long_press">Langes Drücken</string>
+    <string name="debug_haptics_drag_pickup">Zum Ziehen aufnehmen</string>
+    <string name="debug_haptics_drag_hold">Sanfter Impuls beim Ziehen</string>
+    <string name="debug_haptics_selection">Auswahl- / Sortierimpuls</string>
+    <string name="debug_haptics_confirm">Bestätigung</string>
+    <string name="debug_haptics_reject">Ablehnung</string>
+    <string name="debug_haptics_refresh">Zum Aktualisieren ziehen</string>
+    <string name="debug_haptics_primitives">Einzelne Primitive</string>
+    <string name="debug_haptics_low_tick">Leichter Impuls</string>
+    <string name="debug_haptics_tick">Impuls</string>
+    <string name="debug_haptics_click">Klick</string>
+    <string name="debug_haptics_slow_rise">Langsamer Anstieg</string>
+    <string name="debug_haptics_quick_rise">Schneller Anstieg</string>
+    <string name="debug_haptics_quick_fall">Schneller Abfall</string>
+    <string name="debug_haptics_thud">Dumpfer Stoß</string>
+    <string name="debug_haptics_spin">Drehung</string>
+    <string name="debug_haptics_stop">Wiedergabe stoppen</string>
 </resources>

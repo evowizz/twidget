@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <color name="dashboard_remove_button_bg">#353538</color>
     <color name="card_preview_shadow">#507C8390</color>
     <color name="dashboard_edit_shadow">#387C8390</color>
     <color name="dashboard_edit_border">#24FFFFFF</color>

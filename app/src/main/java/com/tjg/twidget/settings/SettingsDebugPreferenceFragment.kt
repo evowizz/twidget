@@ -92,6 +92,14 @@ class SettingsDebugPreferenceFragment : InsetPreferenceFragment() {
         })
         screen.addPreference(category(0))
         screen.addPreference(Preference(context).apply {
+            key = "debug_haptics"
+            title = getString(R.string.debug_haptics_title)
+            setOnPreferenceClickListener {
+                requireActivity().startSettingsSubActivity(Intent(context, HapticsDebugActivity::class.java))
+                true
+            }
+        })
+        screen.addPreference(Preference(context).apply {
             key = "debug_brief_workbench"
             title = getString(R.string.brief_debug_title)
             setOnPreferenceClickListener {

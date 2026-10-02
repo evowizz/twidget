@@ -147,7 +147,7 @@ internal class MainEditModeController(
         activity.invalidateOptionsMenu()
         activity.dashboardBinder.animateEditModeChange(enabled, onTransitionStart = {
             val grid = activity.findViewById<android.view.View>(R.id.dashboard_content)
-            if (enabled) TwidgetHaptics.longPress(grid) else TwidgetHaptics.confirm(grid)
+            TwidgetHaptics.editModePop(grid, entering = enabled)
         }) { activity.render() }
     }
 

@@ -152,10 +152,11 @@ internal class MainDashboardBinder(
                 next.viewTreeObserver.removeOnPreDrawListener(this)
                 if (generation != editTransitionGeneration) return true
                 onTransitionStart()
-                val easing = android.view.animation.PathInterpolator(0.2f, 0f, 0f, 1f)
+                val easing = android.view.animation.PathInterpolator(0.25f, 0f, 0.25f, 1f)
                 for (index in 0 until next.childCount) {
                     val card = next.getChildAt(index) as? FrameLayout ?: continue
                     val start = before[card.tag.toString()] ?: continue
+                    card.animate().cancel()
                     val position = IntArray(2)
                     card.getLocationInWindow(position)
                     card.translationX = (start.x - position[0]).toFloat()
@@ -595,7 +596,6 @@ internal class MainDashboardBinder(
                 }, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
                 scaleX = 0.97f
                 scaleY = 0.97f
-                animate().scaleX(EDIT_CARD_SCALE).scaleY(EDIT_CARD_SCALE).setDuration(180).start()
             }
             setOnLongClickListener(longPressHandler)
             attachCardLongPress(content, longPressHandler)
@@ -702,7 +702,8 @@ internal class MainDashboardBinder(
             scaleType = ImageView.ScaleType.CENTER
             background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
-                setColor(activity.getColor(R.color.oneui_card_bg))
+                setColor(activity.getColor(R.color.dashboard_remove_button_bg))
+                setStroke(activity.dp(1), activity.getColor(R.color.dashboard_edit_border))
             }
             elevation = activity.dp(12).toFloat()
             if (Build.VERSION.SDK_INT >= 28) {

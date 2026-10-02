@@ -74,11 +74,15 @@ class MainAddCardDrawerInstrumentedTest {
         fun observeTransition(activity: MainActivity, appears: Boolean): java.util.concurrent.atomic.AtomicBoolean {
             val observed = java.util.concurrent.atomic.AtomicBoolean(false)
             val grid = activity.findViewById<ViewGroup>(R.id.dashboard_content)
+            var intermediateFrames = 0
             lateinit var listener: android.view.ViewTreeObserver.OnPreDrawListener
             listener = android.view.ViewTreeObserver.OnPreDrawListener {
-                val card = grid.getChildAt(0) as? ViewGroup
-                if (card != null && card.scaleX > 0.9701f && card.scaleX < 0.9999f &&
-                    (!appears || card.getChildAt(0).alpha in 0.001f..0.999f)) {
+                val cards = (0 until grid.childCount).mapNotNull { grid.getChildAt(it) as? ViewGroup }
+                if (cards.isNotEmpty() && cards.all { card ->
+                        card.scaleX > 0.9701f && card.scaleX < 0.9999f &&
+                            (!appears || card.getChildAt(0).alpha in 0.001f..0.999f)
+                    }) intermediateFrames++
+                if (intermediateFrames >= 3) {
                     observed.set(true)
                     grid.viewTreeObserver.removeOnPreDrawListener(listener)
                 }
@@ -189,7 +193,7 @@ class MainAddCardDrawerInstrumentedTest {
                     assertEquals(View.GONE, it.findViewById<View>(R.id.dashboard_edit_button).visibility)
                 }
                 SystemClock.sleep(400)
-                assertTrue("Edit entry animates card size and shadow across intermediate frames", entryObserved.get())
+                assertTrue("Every card animates size and shadow across several intermediate frames", entryObserved.get())
                 scenario.onActivity {
                     val params = it.findViewById<ViewGroup>(R.id.dashboard_content).getChildAt(0).layoutParams as ViewGroup.MarginLayoutParams
                     assertEquals("Edit mode adds no extra vertical spacing", normalVerticalMargins, params.topMargin to params.bottomMargin)
@@ -370,6 +374,8 @@ class MainAddCardDrawerInstrumentedTest {
                     assertFalse("Normal mode cards have no shadow", card.getChildAt(0) is com.tjg.twidget.ui.CardShadowView)
                     card.getGlobalVisibleRect(pickup)
                 }
+                lateinit var heldEntryObserved: java.util.concurrent.atomic.AtomicBoolean
+                scenario.onActivity { heldEntryObserved = observeTransition(it, appears = true) }
                 touch(MotionEvent.ACTION_DOWN, pickup.centerX().toFloat(), pickup.centerY().toFloat())
                 SystemClock.sleep(120)
                 scenario.onActivity {
@@ -380,6 +386,7 @@ class MainAddCardDrawerInstrumentedTest {
                 scenario.onActivity { assertTrue("Holding enters edit mode within 420ms", it.editModeController.editMode) }
                 touch(MotionEvent.ACTION_UP, pickup.centerX().toFloat(), pickup.centerY().toFloat())
                 SystemClock.sleep(250)
+                assertTrue("Unheld cards animate over several frames when a held card enters editing", heldEntryObserved.get())
                 scenario.onActivity {
                     it.findViewById<ViewGroup>(R.id.dashboard_content).getChildAt(0).getGlobalVisibleRect(pickup)
                 }

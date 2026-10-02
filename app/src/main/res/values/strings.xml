@@ -1093,4 +1093,30 @@
         <item quantity="one">%d card available</item>
         <item quantity="other">%d cards available</item>
     </plurals>
+    <string name="debug_haptics_title">Haptics</string>
+    <string name="debug_haptics_settings">Touch feedback</string>
+    <string name="debug_haptics_enabled">Tap an effect to try it. System touch-feedback settings are respected.</string>
+    <string name="debug_haptics_disabled">System touch feedback is off. Enable it in device settings to try these effects.</string>
+    <string name="debug_haptics_actions">App effects</string>
+    <string name="debug_haptics_unsupported">Not supported on this device</string>
+    <string name="debug_haptics_hold">Hold ramp → edit-mode pop</string>
+    <string name="debug_haptics_enter">Enter edit mode</string>
+    <string name="debug_haptics_exit">Exit edit mode</string>
+    <string name="debug_haptics_long_press">Long press</string>
+    <string name="debug_haptics_drag_pickup">Drag pickup</string>
+    <string name="debug_haptics_drag_hold">Gentle tick while dragging</string>
+    <string name="debug_haptics_selection">Selection / reorder tick</string>
+    <string name="debug_haptics_confirm">Confirmation</string>
+    <string name="debug_haptics_reject">Rejection</string>
+    <string name="debug_haptics_refresh">Pull to refresh</string>
+    <string name="debug_haptics_primitives">Individual primitives</string>
+    <string name="debug_haptics_low_tick">Low tick</string>
+    <string name="debug_haptics_tick">Tick</string>
+    <string name="debug_haptics_click">Click</string>
+    <string name="debug_haptics_slow_rise">Slow rise</string>
+    <string name="debug_haptics_quick_rise">Quick rise</string>
+    <string name="debug_haptics_quick_fall">Quick fall</string>
+    <string name="debug_haptics_thud">Thud</string>
+    <string name="debug_haptics_spin">Spin</string>
+    <string name="debug_haptics_stop">Stop playback</string>
 </resources>
