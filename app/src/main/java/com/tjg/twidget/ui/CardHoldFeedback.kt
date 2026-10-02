@@ -21,9 +21,15 @@ internal class CardHoldFeedback(
     private var pending = false
     private var consumed = false
     private var cancellingNativePress = false
+    private var cancelHapticRamp: (() -> Unit)? = null
+    private fun stopHapticRamp() {
+        cancelHapticRamp?.invoke()
+        cancelHapticRamp = null
+    }
     private val completeHold = Runnable {
         if (!pending || !owner.isAttachedToWindow || !enabled()) return@Runnable
         pending = false
+        stopHapticRamp()
         cancellingNativePress = true
         val now = SystemClock.uptimeMillis()
         val cancel = MotionEvent.obtain(now, now, MotionEvent.ACTION_CANCEL, downX, downY, 0)
@@ -42,6 +48,8 @@ internal class CardHoldFeedback(
                 downX = event.x
                 downY = event.y
                 pending = true
+                stopHapticRamp()
+                cancelHapticRamp = TwidgetHaptics.startHoldRamp(owner, HOLD_MS)
                 owner.postDelayed(completeHold, HOLD_MS)
                 if (ValueAnimator.areAnimatorsEnabled()) {
                     target.animate().cancel()
@@ -52,6 +60,7 @@ internal class CardHoldFeedback(
         } else if (event.actionMasked in setOf(MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL, MotionEvent.ACTION_POINTER_DOWN) ||
             event.actionMasked == MotionEvent.ACTION_MOVE && (abs(event.x - downX) > slop || abs(event.y - downY) > slop)) {
             owner.removeCallbacks(completeHold)
+            stopHapticRamp()
             if (pending || consumed) {
                 pending = false
                 target.animate().cancel()
@@ -63,6 +72,7 @@ internal class CardHoldFeedback(
 
     fun detach() {
         owner.removeCallbacks(completeHold)
+        stopHapticRamp()
         pending = false
         target.animate().cancel()
     }

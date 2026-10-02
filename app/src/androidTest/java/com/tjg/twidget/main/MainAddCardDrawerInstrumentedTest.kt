@@ -126,17 +126,74 @@ class MainAddCardDrawerInstrumentedTest {
                         .setExpanded(false, animate = false)
                 }
                 SystemClock.sleep(150)
+                scenario.onActivity { activity ->
+                    val scroll = activity.findViewById<NestedScrollView>(R.id.dashboard_scroll)
+                    val appBar = allViews(activity.findViewById(android.R.id.content))
+                        .filterIsInstance<com.google.android.material.appbar.AppBarLayout>().first()
+                    scroll.startNestedScroll(androidx.core.view.ViewCompat.SCROLL_AXIS_VERTICAL)
+                    val consumed = IntArray(2)
+                    scroll.dispatchNestedPreScroll(0, appBar.height * 2, consumed, null)
+                    scroll.scrollBy(0, activity.dp(300))
+                    scroll.stopNestedScroll()
+                }
+                SystemClock.sleep(300)
+                val positionBeforeOverflow = IntArray(2)
+                var profileIcon: android.graphics.drawable.Drawable? = null
+                var noticesIcon: android.graphics.drawable.Drawable? = null
+                scenario.onActivity { activity ->
+                    val toolbar = activity.findViewById<androidx.appcompat.widget.Toolbar>(
+                        dev.oneuiproject.oneui.design.R.id.toolbarlayout_main_toolbar)
+                    activity.onPrepareOptionsMenu(toolbar.menu)
+                    val heading = allViews(toolbar).filterIsInstance<TextView>().first { it.text == toolbar.title }
+                    assertEquals("Scrolled tablet heading is hidden before opening overflow", 0f, heading.alpha, 0.01f)
+                    profileIcon = toolbar.menu.findItem(R.id.menu_open_profile).icon
+                    noticesIcon = toolbar.menu.findItem(R.id.menu_notices).icon
+                    activity.findViewById<ViewGroup>(R.id.dashboard_content).getChildAt(0).getLocationInWindow(positionBeforeOverflow)
+                    assertTrue("Overflow opens", toolbar.showOverflowMenu())
+                }
+                SystemClock.sleep(250)
+                scenario.onActivity { activity ->
+                    val toolbar = activity.findViewById<androidx.appcompat.widget.Toolbar>(
+                        dev.oneuiproject.oneui.design.R.id.toolbarlayout_main_toolbar)
+                    activity.onPrepareOptionsMenu(toolbar.menu)
+                    val heading = allViews(toolbar).filterIsInstance<TextView>().first { it.text == toolbar.title }
+                    assertEquals("Opening overflow keeps the tablet heading hidden", 0f, heading.alpha, 0.01f)
+                    assertSame("Preparing overflow retains the profile icon", profileIcon, toolbar.menu.findItem(R.id.menu_open_profile).icon)
+                    assertSame("Preparing overflow retains the notices icon", noticesIcon, toolbar.menu.findItem(R.id.menu_notices).icon)
+                    val position = IntArray(2)
+                    activity.findViewById<ViewGroup>(R.id.dashboard_content).getChildAt(0).getLocationInWindow(position)
+                    assertArrayEquals("Opening overflow does not shift dashboard content", positionBeforeOverflow, position)
+                    toolbar.hideOverflowMenu()
+                }
+                SystemClock.sleep(150)
+                scenario.onActivity { activity ->
+                    val toolbar = activity.findViewById<androidx.appcompat.widget.Toolbar>(
+                        dev.oneuiproject.oneui.design.R.id.toolbarlayout_main_toolbar)
+                    val heading = allViews(toolbar).filterIsInstance<TextView>().first { it.text == toolbar.title }
+                    assertEquals("Closing overflow keeps the tablet heading hidden", 0f, heading.alpha, 0.01f)
+                    activity.findViewById<NestedScrollView>(R.id.dashboard_scroll).scrollTo(0, 0)
+                    activity.findViewById<dev.oneuiproject.oneui.layout.NavDrawerLayout>(R.id.main_toolbar_layout)
+                        .setExpanded(false, animate = false)
+                }
+                SystemClock.sleep(150)
                 lateinit var entryObserved: java.util.concurrent.atomic.AtomicBoolean
+                var normalVerticalMargins = 0 to 0
                 scenario.onActivity {
                     assertTrue("Bottom edit button is available in normal mode",
                         it.findViewById<View>(R.id.dashboard_edit_button).isShown)
                     entryObserved = observeTransition(it, appears = true)
+                    val params = it.findViewById<ViewGroup>(R.id.dashboard_content).getChildAt(0).layoutParams as ViewGroup.MarginLayoutParams
+                    normalVerticalMargins = params.topMargin to params.bottomMargin
                     it.findViewById<View>(R.id.dashboard_edit_button).performClick()
                     assertTrue("Bottom button enters edit mode", it.editModeController.editMode)
                     assertEquals(View.GONE, it.findViewById<View>(R.id.dashboard_edit_button).visibility)
                 }
                 SystemClock.sleep(400)
                 assertTrue("Edit entry animates card size and shadow across intermediate frames", entryObserved.get())
+                scenario.onActivity {
+                    val params = it.findViewById<ViewGroup>(R.id.dashboard_content).getChildAt(0).layoutParams as ViewGroup.MarginLayoutParams
+                    assertEquals("Edit mode adds no extra vertical spacing", normalVerticalMargins, params.topMargin to params.bottomMargin)
+                }
                 scenario.onActivity { it.editModeController.setEditMode(false) }
                 SystemClock.sleep(250)
                 scenario.onActivity { activity ->

@@ -89,7 +89,7 @@ internal class MainAddCardDrawer(
 
     private fun sheetWidth(): Int {
         val windowWidth = activity.resources.configuration.screenWidthDp
-        return activity.dp(if (windowWidth >= 600) (windowWidth * 0.90f).toInt() else (windowWidth - 24).coerceAtLeast(0))
+        return activity.dp(if (windowWidth >= 600) (windowWidth * 0.84f).toInt() else (windowWidth - 24).coerceAtLeast(0))
     }
 
     private fun maxSheetHeight(): Int = minOf(activity.dp(746), (activity.resources.displayMetrics.heightPixels * 0.84f).toInt())

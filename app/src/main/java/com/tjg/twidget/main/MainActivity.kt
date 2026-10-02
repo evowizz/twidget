@@ -223,14 +223,22 @@ class MainActivity : ScheduleQueueHostActivity() {
     }
 
     override fun onPrepareOptionsMenu(menu: Menu): Boolean {
-        menu.findItem(R.id.menu_open_profile)?.setIcon(com.tjg.twidget.ui.AppAppearance.logoDrawable(this))
+        menu.findItem(R.id.menu_open_profile)?.let { item ->
+            val logo = com.tjg.twidget.ui.AppAppearance.logoDrawable(this)
+            if (item !== preparedProfileItem || logo != preparedProfileLogo) {
+                item.setIcon(logo)
+                preparedProfileItem = item
+                preparedProfileLogo = logo
+            }
+        }
         if (destination == MainDestination.SCHEDULING) {
             setDashboardMenuVisible(menu, false)
             return super.onPrepareOptionsMenu(menu)
         }
         menu.findItem(R.id.schedule_trash_menu)?.isVisible = false
         menu.findItem(R.id.schedule_settings_menu)?.isVisible = false
-        setDashboardMenuVisible(menu, true)
+        // Set each item's final state once. Temporarily exposing the edit-only
+        // action makes the floating toolbar relayout as its overflow popup opens.
         menu.findItem(R.id.menu_notices)?.isVisible = !editModeController.editMode
         updateNoticesMenuIcon(menu)
         menu.findItem(R.id.menu_add_widget)?.isVisible = !editModeController.editMode
@@ -305,13 +313,22 @@ class MainActivity : ScheduleQueueHostActivity() {
 
     private fun updateNoticesMenuIcon(menu: Menu) {
         val item = menu.findItem(R.id.menu_notices) ?: return
+        val unseen = ReleaseNoticesStore.hasUnseen(this)
+        if (item === preparedNoticesItem && unseen == preparedNoticesUnseen && item.icon != null) return
         val base = AppCompatResources.getDrawable(this, OneUiIconR.drawable.ic_oui_notice_outline) ?: return
-        item.icon = if (ReleaseNoticesStore.hasUnseen(this)) {
+        item.icon = if (unseen) {
             NoticeBadgeDrawable(base, getColor(R.color.notice_badge_orange), resources.displayMetrics.density)
         } else {
             base
         }
+        preparedNoticesItem = item
+        preparedNoticesUnseen = unseen
     }
+
+    private var preparedProfileItem: MenuItem? = null
+    private var preparedProfileLogo: Int? = null
+    private var preparedNoticesItem: MenuItem? = null
+    private var preparedNoticesUnseen: Boolean? = null
 
     internal fun render(bindDashboard: Boolean = true) {
         accounts = TwidgetStore.accounts(this)

@@ -126,11 +126,12 @@ internal class MainDashboardBinder(
     private val editModeController get() = activity.editModeController
     private var editTransitionGeneration = 0
 
-    fun animateEditModeChange(enabled: Boolean, render: () -> Unit) {
+    fun animateEditModeChange(enabled: Boolean, onTransitionStart: () -> Unit, render: () -> Unit) {
         val generation = ++editTransitionGeneration
         val grid = activity.findViewById<GridLayout>(R.id.dashboard_content)
         if (grid == null || !android.animation.ValueAnimator.areAnimatorsEnabled()) {
             render()
+            onTransitionStart()
             return
         }
         data class Start(val x: Int, val y: Int, val scale: Float, val decorations: List<View>)
@@ -150,6 +151,7 @@ internal class MainDashboardBinder(
             override fun onPreDraw(): Boolean {
                 next.viewTreeObserver.removeOnPreDrawListener(this)
                 if (generation != editTransitionGeneration) return true
+                onTransitionStart()
                 val easing = android.view.animation.PathInterpolator(0.2f, 0f, 0f, 1f)
                 for (index in 0 until next.childCount) {
                     val card = next.getChildAt(index) as? FrameLayout ?: continue
@@ -186,7 +188,7 @@ internal class MainDashboardBinder(
                     val initialAlpha = decorations.associateWith { it.alpha }
                     val targetScale = if (enabled) EDIT_CARD_SCALE else 1f
                     android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
-                        duration = 220L
+                        duration = 140L
                         interpolator = easing
                         addUpdateListener {
                             if (!card.isAttachedToWindow || generation != editTransitionGeneration) { cancel(); return@addUpdateListener }
@@ -635,8 +637,7 @@ internal class MainDashboardBinder(
 
     private fun handleDashboardCardLongPress(card: DashboardCardType, dragView: View): Boolean {
         if (!editModeController.editMode) {
-            // The pressed card is replaced by render(), so signal entry before it detaches.
-            com.tjg.twidget.ui.TwidgetHaptics.longPress(dragView)
+            // Entry feedback is synchronized with the replacement card's first animation frame.
             editModeController.setEditMode(true)
         } else {
             editModeController.draggedCardId = card.id
@@ -1128,8 +1129,7 @@ internal class MainDashboardBinder(
                 else -> activity.dp(card.size.heightDp)
             }
             columnSpec = GridLayout.spec(GridLayout.UNDEFINED, card.size.span, 1f)
-            val verticalGap = if (editModeController.editMode) 10 else 5
-            setMargins(activity.dp(5), activity.dp(verticalGap), activity.dp(5), activity.dp(verticalGap))
+            setMargins(activity.dp(5), activity.dp(5), activity.dp(5), activity.dp(5))
         }
 
     private fun decimal(value: Double, suffix: String): String =

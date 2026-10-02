@@ -145,7 +145,10 @@ internal class MainEditModeController(
         activity.updateScheduleFabVisibility()
         if (!enabled) clearDragPreview()
         activity.invalidateOptionsMenu()
-        activity.dashboardBinder.animateEditModeChange(enabled) { activity.render() }
+        activity.dashboardBinder.animateEditModeChange(enabled, onTransitionStart = {
+            val grid = activity.findViewById<android.view.View>(R.id.dashboard_content)
+            if (enabled) TwidgetHaptics.longPress(grid) else TwidgetHaptics.confirm(grid)
+        }) { activity.render() }
     }
 
     fun confirmResetLayout() {
