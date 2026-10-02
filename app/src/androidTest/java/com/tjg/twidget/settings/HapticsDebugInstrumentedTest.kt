@@ -52,7 +52,7 @@ class HapticsDebugInstrumentedTest {
                 scenario.onActivity { activity ->
                     val page = activity.supportFragmentManager.findFragmentById(R.id.preference_fragment_container)
                         as HapticsDebugPreferenceFragment
-                    assertNotNull(page.findPreference<Preference>("haptics_status")?.summary)
+                    assertNotNull(page.findPreference<Preference>("haptics_force_waveforms"))
                     page.findPreference<Preference>("haptics_enter")!!.performClick()
                 }
             }

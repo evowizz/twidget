@@ -193,7 +193,7 @@ object TwidgetFonts {
                 else -> baseline.weight
             }
             val desired = if (view.getTag(R.id.app_font_role) == Role.CHART_DELTA)
-                oneUiSans(view.context, 400)
+                forApp(view.context, font, 400, baseline.italic)
                 else if (view.getTag(R.id.app_font_role) in setOf(Role.DASHBOARD_VALUE, Role.STREAK_VALUE))
                 googleAppTypeface(view.context, 400, false, if (view.getTag(R.id.app_font_role) == Role.STREAK_VALUE) 130 else 124, 100)
                 else if (google && section) googleAppTypeface(view.context, 700, baseline.italic, 60, 100)

@@ -1094,9 +1094,6 @@
         <item quantity="other">%d cards available</item>
     </plurals>
     <string name="debug_haptics_title">Haptics</string>
-    <string name="debug_haptics_settings">Touch feedback</string>
-    <string name="debug_haptics_enabled">Tap an effect to try it. System touch-feedback settings are respected.</string>
-    <string name="debug_haptics_disabled">System touch feedback is off. Enable it in device settings to try these effects.</string>
     <string name="debug_haptics_actions">App effects</string>
     <string name="debug_haptics_unsupported">Not supported on this device</string>
     <string name="debug_haptics_hold">Hold ramp → edit-mode pop</string>

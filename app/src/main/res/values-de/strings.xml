@@ -1055,9 +1055,6 @@
         <item quantity="other">%d Karten verfügbar</item>
     </plurals>
     <string name="debug_haptics_title">Haptik</string>
-    <string name="debug_haptics_settings">Berührungsfeedback</string>
-    <string name="debug_haptics_enabled">Tippe auf einen Effekt, um ihn auszuprobieren. Die Systemeinstellungen für Berührungsfeedback werden berücksichtigt.</string>
-    <string name="debug_haptics_disabled">Berührungsfeedback ist im System deaktiviert. Aktiviere es in den Geräteeinstellungen, um die Effekte auszuprobieren.</string>
     <string name="debug_haptics_actions">App-Effekte</string>
     <string name="debug_haptics_unsupported">Auf diesem Gerät nicht unterstützt</string>
     <string name="debug_haptics_hold">Ansteigendes Haltefeedback → Bearbeitungsimpuls</string>

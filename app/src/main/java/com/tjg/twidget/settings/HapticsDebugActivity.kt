@@ -2,7 +2,6 @@ package com.tjg.twidget.settings
 
 import android.os.Build
 import android.os.Bundle
-import android.provider.Settings
 import android.view.View
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
@@ -47,11 +46,6 @@ class HapticsDebugPreferenceFragment : InsetPreferenceFragment() {
                 updatePrimitiveAvailability()
                 true
             }
-        })
-        screen.addPreference(Preference(context).apply {
-            key = "haptics_status"
-            title = getString(R.string.debug_haptics_settings)
-            isSelectable = false
         })
         screen.addPreference(PreferenceCategory(context).apply { title = getString(R.string.debug_haptics_actions) })
         fun action(key: String, titleRes: Int, supported: Boolean = true, play: (View) -> Unit) {
@@ -114,11 +108,6 @@ class HapticsDebugPreferenceFragment : InsetPreferenceFragment() {
     override fun onResume() {
         super.onResume()
         updatePrimitiveAvailability()
-        findPreference<Preference>("haptics_status")?.summary = getString(
-            if (Settings.System.getInt(requireContext().contentResolver,
-                    Settings.System.HAPTIC_FEEDBACK_ENABLED, 1) != 0)
-                R.string.debug_haptics_enabled else R.string.debug_haptics_disabled,
-        )
     }
 
     private fun updatePrimitiveAvailability() {

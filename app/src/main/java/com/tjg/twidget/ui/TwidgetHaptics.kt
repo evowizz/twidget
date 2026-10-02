@@ -53,9 +53,24 @@ internal object TwidgetHaptics {
         return { vibrator.cancel() }
     }
 
+    /** Give scrolling 90 ms to cancel before feedback begins; keep the original hold deadline. */
+    fun startHoldRamp(view: View, durationMs: Long): () -> Unit {
+        val delayMs = minOf(90L, durationMs.coerceAtLeast(0))
+        var cancelActiveRamp: (() -> Unit)? = null
+        val start = Runnable {
+            if (view.isAttachedToWindow) cancelActiveRamp = playHoldRamp(view, durationMs - delayMs)
+        }
+        view.postDelayed(start, delayMs)
+        return {
+            view.removeCallbacks(start)
+            cancelActiveRamp?.invoke()
+            cancelActiveRamp = null
+        }
+    }
+
     /** Cancellable primitive pulses build in strength; the transition supplies the final pop. */
     @Suppress("DEPRECATION")
-    fun startHoldRamp(view: View, durationMs: Long): () -> Unit {
+    private fun playHoldRamp(view: View, durationMs: Long): () -> Unit {
         if (!view.isHapticFeedbackEnabled || Settings.System.getInt(view.context.contentResolver,
                 Settings.System.HAPTIC_FEEDBACK_ENABLED, 1) == 0) return {}
         val vibrator = view.context.getSystemService(Vibrator::class.java)
