@@ -446,15 +446,8 @@ class TwidgetBriefActivity : FoldablePopOverActivity() {
             setLineSpacing(dp(2).toFloat(), 1f)
         }, matchWrap(top = 10))
 
-        post.media.firstOrNull()?.let { media ->
-            addView(com.tjg.twidget.ui.MediaAspectImageView(context).apply {
-                contentDescription = media.alt.ifBlank { getString(R.string.post_media) }
-                scaleType = ImageView.ScaleType.FIT_CENTER
-                ProfileImageLoader.loadMediaInto(context, this, media.url, dp(14))
-            }, LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-            ).apply { topMargin = dp(10) })
+        post.media.takeIf { it.isNotEmpty() }?.let { media ->
+            addView(com.tjg.twidget.ui.TweetMediaView.create(context, media), matchWrap(top = 10))
         }
 
         addView(LinearLayout(context).apply {

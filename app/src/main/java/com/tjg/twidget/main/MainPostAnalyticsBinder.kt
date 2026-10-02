@@ -134,34 +134,9 @@ internal class MainPostAnalyticsBinder(
             })
 
             post?.media?.takeIf { it.isNotEmpty() }?.let { media ->
-                fun mediaImage(item: com.tjg.twidget.analytics.PostMedia): ImageView =
-                    com.tjg.twidget.ui.MediaAspectImageView(activity).apply {
-                        contentDescription = item.alt.ifBlank { activity.getString(R.string.post_media) }
-                        ProfileImageLoader.loadMediaInto(activity, this, item.url, activity.dp(14))
-                        scaleType = ImageView.ScaleType.FIT_CENTER
-                    }
-                val mediaView: View = if (media.size == 1) mediaImage(media.first()) else
-                    android.widget.HorizontalScrollView(activity).apply {
-                        isHorizontalScrollBarEnabled = false
-                        isFillViewport = true
-                        outlineProvider = object : android.view.ViewOutlineProvider() {
-                            override fun getOutline(view: View, outline: android.graphics.Outline) {
-                                outline.setRoundRect(0, 0, view.width, view.height, activity.dp(14).toFloat())
-                            }
-                        }
-                        clipToOutline = true
-                        addView(LinearLayout(activity).apply {
-                            orientation = LinearLayout.HORIZONTAL
-                            media.forEachIndexed { index, item ->
-                                addView(mediaImage(item), LinearLayout.LayoutParams(
-                                    LinearLayout.LayoutParams.WRAP_CONTENT, activity.dp(218),
-                                ).apply { if (index > 0) marginStart = activity.dp(8) })
-                            }
-                        })
-                    }
-                addView(mediaView, LinearLayout.LayoutParams(
+                addView(com.tjg.twidget.ui.TweetMediaView.create(activity, media), LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
-                    if (media.size == 1) LinearLayout.LayoutParams.WRAP_CONTENT else activity.dp(218),
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
                 ).apply { topMargin = activity.dp(10) })
             }
 
