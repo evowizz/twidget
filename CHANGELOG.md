@@ -2,6 +2,71 @@
 
 All notable changes to Twidget are documented here.
 
+## [1.3.0-beta.4] - 2026-10-02
+
+A smoother dashboard editing experience, a new card picker, and more refinements
+to home screen widgets, typography, and Your Brief. These changes are since beta.3.
+
+### Dashboard editing and card picker
+
+- Press and hold a card to enter edit mode, with a subtle press animation and
+  haptic build-up. You can also use the new Edit dashboard button at the bottom
+  of the list.
+- Cards shrink slightly and gain soft shadows in edit mode, with smooth
+  transitions when entering and leaving. Releasing a dragged card gives it a
+  gentle bounce.
+- Improved rearranging, especially for half-width cards, and made edge scrolling
+  more reliable while dragging up or down the dashboard.
+- Replaced the add-card dialog with a drawer of grouped card previews. Categories
+  open and close together in an accordion animation, with available-card counts
+  and disabled states when everything has been added.
+- Press and hold a preview to drag a new card straight onto the dashboard and
+  choose its position. The picker adapts to phones, tablets, and foldables.
+- Disabled card navigation and other content actions during editing, while
+  keeping remove controls available.
+- Refined preview shadows, rounded corners, remove controls, and scrolling fades.
+  Improved editing performance and shadow visibility in dark mode.
+- Fixed toolbar jumps between normal and edit modes, and kept the tablet toolbar
+  floating when opening its overflow menu.
+
+### Haptic feedback
+
+- Added quick-rise feedback when opening Your Brief and on the welcome and final
+  onboarding steps.
+- Use supported haptic primitives, with waveform fallbacks for devices that do
+  not support an effect. Hold feedback waits briefly before starting so scrolling
+  can cancel it.
+- Added a Haptics page in Debug settings to preview app effects and individual
+  primitives, plus a Force waveforms toggle for comparison.
+
+### Home screen widgets
+
+- Improved follower text fitting, emphasis, spacing, and baselines across widget
+  sizes and font choices. Counts make better use of the space when resizing.
+- Further reduced rendering work during resizing for a quicker response.
+- Added an optional contained username for Material widgets and refined widget
+  proportions and footer logo sizing.
+- Updated widget defaults in Settings to match the individual widget settings.
+  Fixed wallpaper-preview flicker, scrolling, and native control sizing.
+
+### Cards, Your Brief, and other fixes
+
+- Refined dashboard metric and streak cards, including a new personal-best
+  streak state and colours that adapt to light and dark mode.
+- Capped tweet-image height in the dashboard and Your Brief, cropping tall images
+  while preserving the aspect ratio of shorter ones. Your Brief now lets you
+  scroll through every image in tweets with multiple photos.
+- Made chart deltas and scale labels follow the selected app font, and fitted
+  long small-card headings onto one line.
+- Improved Top Followers browsing with a rank-aware fast scroller, better search
+  clearance, and a more reliable return-to-top action.
+- Added native One UI snackbars for scheduling feedback and corrected widget
+  logo updates while preserving individual widget choices.
+- Updated English and German wording and patched bridge dependencies flagged by
+  the security audit.
+
+[1.3.0-beta.4]: https://github.com/thatjoshguy67/twidget/compare/twidget-v1.3.0-beta.3...twidget-v1.3.0-beta.4
+
 ## [1.3.0-beta.3] - 2026-09-25
 
 New home screen widget styles, faster resizing, and refinements to typography,
