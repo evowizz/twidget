@@ -26,8 +26,7 @@ internal object TwidgetHaptics {
     }
 
     fun canPreviewPrimitive(view: View, primitive: Int): Boolean =
-        if (forceWaveforms(view.context)) view.context.getSystemService(Vibrator::class.java)?.hasVibrator() == true
-        else supportsPrimitive(view, primitive)
+        primitive in 1..8 && view.context.getSystemService(Vibrator::class.java)?.hasVibrator() == true
 
     fun quickRise(view: View) {
         previewPrimitive(view, 5) // PRIMITIVE_QUICK_RISE; waveform previews also work before API 30.
@@ -45,7 +44,7 @@ internal object TwidgetHaptics {
             !view.isHapticFeedbackEnabled || Settings.System.getInt(view.context.contentResolver,
                 Settings.System.HAPTIC_FEEDBACK_ENABLED, 1) == 0) return {}
         val vibrator = view.context.getSystemService(Vibrator::class.java) ?: return {}
-        if (forceWaveforms(view.context)) {
+        if (forceWaveforms(view.context) || !supportsPrimitive(view, primitive)) {
             vibrateTouch(vibrator, primitiveWaveform(vibrator, primitive, scale))
         } else if (Build.VERSION.SDK_INT >= 30) {
             vibrateTouch(vibrator, VibrationEffect.startComposition().addPrimitive(primitive, scale).compose())
@@ -75,24 +74,7 @@ internal object TwidgetHaptics {
                 Settings.System.HAPTIC_FEEDBACK_ENABLED, 1) == 0) return {}
         val vibrator = view.context.getSystemService(Vibrator::class.java)
         if (vibrator == null || !vibrator.hasVibrator()) return {}
-        if (forceWaveforms(view.context)) {
-            val steps = 14
-            val timings = LongArray(steps + 2) { durationMs.coerceAtLeast(steps.toLong()) / steps }
-            timings[0] = 1
-            timings[steps] += durationMs % steps
-            timings[steps + 1] = 6
-            val amplitudes = IntArray(steps + 2) { index ->
-                if (index == 0 || index == steps + 1) 0 else {
-                    val progress = (index - 1).toFloat() / (steps - 1)
-                    (12 + 56 * progress * progress).toInt()
-                }
-            }
-            val effect = if (vibrator.hasAmplitudeControl()) VibrationEffect.createWaveform(timings, amplitudes, -1)
-                else VibrationEffect.createWaveform(longArrayOf(0, 5, durationMs / 3, 8, durationMs / 3, 12), -1)
-            vibrateTouch(vibrator, effect)
-            return { vibrator.cancel() }
-        }
-        if (Build.VERSION.SDK_INT >= 30) {
+        if (!forceWaveforms(view.context) && Build.VERSION.SDK_INT >= 30) {
             val primitive = if (Build.VERSION.SDK_INT >= 31 &&
                 vibrator.arePrimitivesSupported(VibrationEffect.Composition.PRIMITIVE_LOW_TICK).all { it }) {
                 VibrationEffect.Composition.PRIMITIVE_LOW_TICK
@@ -112,37 +94,25 @@ internal object TwidgetHaptics {
                 return { vibrator.cancel() }
             }
         }
-        // Devices without composition support retain brief platform ticks.
-        val pulses = listOf(0.25f, 0.55f, 0.8f).mapIndexed { index, progress ->
-            Runnable {
-                if (view.isAttachedToWindow) view.performHapticFeedback(
-                    if (Build.VERSION.SDK_INT >= 34) {
-                        if (index < 2) HapticFeedbackConstants.SEGMENT_FREQUENT_TICK else HapticFeedbackConstants.SEGMENT_TICK
-                    } else HapticFeedbackConstants.CLOCK_TICK,
-                )
-            }.also { view.postDelayed(it, (durationMs * progress).toLong()) }
+        val steps = 14
+        val timings = LongArray(steps + 2) { durationMs.coerceAtLeast(steps.toLong()) / steps }
+        timings[0] = 1
+        timings[steps] += durationMs % steps
+        timings[steps + 1] = 6
+        val amplitudes = IntArray(steps + 2) { index ->
+            if (index == 0 || index == steps + 1) 0 else {
+                val progress = (index - 1).toFloat() / (steps - 1)
+                (12 + 56 * progress * progress).toInt()
+            }
         }
-        return { pulses.forEach { view.removeCallbacks(it) } }
+        val effect = if (vibrator.hasAmplitudeControl()) VibrationEffect.createWaveform(timings, amplitudes, -1)
+            else VibrationEffect.createWaveform(longArrayOf(0, 5, durationMs / 3, 8, durationMs / 3, 12), -1)
+        vibrateTouch(vibrator, effect)
+        return { vibrator.cancel() }
     }
 
     fun editModePop(view: View, entering: Boolean) {
-        if (!view.isHapticFeedbackEnabled || Settings.System.getInt(view.context.contentResolver,
-                Settings.System.HAPTIC_FEEDBACK_ENABLED, 1) == 0) return
-        if (forceWaveforms(view.context)) {
-            previewPrimitive(view, 1, if (entering) 0.8f else 0.5f)
-            return
-        }
-        if (Build.VERSION.SDK_INT >= 30) {
-            val vibrator = view.context.getSystemService(Vibrator::class.java)
-            if (vibrator != null && vibrator.hasVibrator() &&
-                vibrator.arePrimitivesSupported(VibrationEffect.Composition.PRIMITIVE_CLICK).all { it }) {
-                vibrateTouch(vibrator, VibrationEffect.startComposition()
-                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_CLICK, if (entering) 0.8f else 0.5f)
-                    .compose())
-                return
-            }
-        }
-        if (entering) longPress(view) else confirm(view)
+        previewPrimitive(view, 1, if (entering) 0.8f else 0.5f)
     }
 
     @Suppress("DEPRECATION")
@@ -154,7 +124,7 @@ internal object TwidgetHaptics {
         }
     }
 
-    /** Waveform approximations for comparison, not a reproduction of actuator-specific primitives. */
+    /** Waveform fallbacks approximate primitives on hardware without composition support. */
     private fun primitiveWaveform(vibrator: Vibrator, primitive: Int, scale: Float): VibrationEffect {
         if (!vibrator.hasAmplitudeControl()) {
             return VibrationEffect.createWaveform(longArrayOf(0, if (primitive == 8 || primitive == 7) 5 else 12, 6), -1)

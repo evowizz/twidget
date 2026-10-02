@@ -1,5 +1,6 @@
 package com.tjg.twidget.settings
 
+import android.os.Vibrator
 import androidx.lifecycle.Lifecycle
 import androidx.preference.Preference
 import androidx.preference.SwitchPreferenceCompat
@@ -28,10 +29,12 @@ class HapticsDebugInstrumentedTest {
                     for (enabled in listOf(true, false)) {
                         if (toggle.isChecked != enabled) toggle.performClick()
                         assertEquals(enabled, TwidgetHaptics.forceWaveforms(context))
-                        val primitive = page.findPreference<Preference>("haptics_primitive_5")!!
-                        assertEquals(TwidgetHaptics.canPreviewPrimitive(activity.findViewById(R.id.preference_fragment_container), 5),
-                            primitive.isEnabled)
-                        if (primitive.isEnabled) primitive.performClick()
+                        for (id in 1..8) {
+                            val primitive = page.findPreference<Preference>("haptics_primitive_$id")!!
+                            assertEquals(context.getSystemService(Vibrator::class.java)?.hasVibrator() == true,
+                                primitive.isEnabled)
+                            if (primitive.isEnabled) primitive.performClick()
+                        }
                         page.findPreference<Preference>("haptics_hold")!!.performClick()
                         page.findPreference<Preference>("haptics_stop")!!.performClick()
                         page.findPreference<Preference>("haptics_enter")!!.performClick()
