@@ -26,19 +26,12 @@ require(!signDebugWithRelease || releaseStoreFile != null) {
     "-PsignDebugWithRelease=true requires the release signing credentials"
 }
 
-fun propertyOrEnv(propKey: String, envKey: String): String =
-    providers.gradleProperty(propKey).orElse(providers.environmentVariable(envKey)).getOrElse("")
-val bufferOAuthClientId = propertyOrEnv("bufferOAuthClientId", "BUFFER_OAUTH_CLIENT_ID")
-val cloudinaryCloudName = propertyOrEnv("cloudinaryCloudName", "CLOUDINARY_CLOUD_NAME")
-val cloudinaryUploadPreset = propertyOrEnv("cloudinaryUploadPreset", "CLOUDINARY_UPLOAD_PRESET")
-
 android {
     namespace = "com.tjg.twidget"
 
     buildFeatures {
         // Only for VERSION_NAME and VERSION_CODE. Flavor values live in env/BuildVars.kt.
         buildConfig = true
-        resValues = true
     }
 
     // Widgets choose their language independently of the app/device locale.
@@ -52,14 +45,6 @@ android {
     defaultConfig {
         applicationId = "com.tjg.twidget"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        resValue("string", "buffer_oauth_client_id", bufferOAuthClientId)
-        resValue("string", "cloudinary_cloud_name", cloudinaryCloudName)
-        resValue("string", "cloudinary_upload_preset", cloudinaryUploadPreset)
-        resValue(
-            "string",
-            "buffer_oauth_redirect_uri",
-            "https://thatjoshguy67.github.io/twidget/oauth/buffer/",
-        )
     }
 
     signingConfigs {

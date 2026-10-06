@@ -6,6 +6,7 @@ import com.tjg.twidget.buildlogic.GenerateDebugChangelog
 import com.tjg.twidget.buildlogic.GenerateSamsungThemeMetadata
 import com.tjg.twidget.buildlogic.configureFlavors
 import com.tjg.twidget.buildlogic.configureKotlinAndroid
+import com.tjg.twidget.buildlogic.configureResValues
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.apply
@@ -27,6 +28,7 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
                     versionName = appVersion.versionName
                 }
             }
+            configureResValues()
             extensions.configure<ApplicationAndroidComponentsExtension> {
                 onVariants { variant ->
                     variant.outputs.forEach { output ->
