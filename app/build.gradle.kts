@@ -73,12 +73,12 @@ val cloudinaryCloudName = propertyOrEnv("cloudinaryCloudName", "CLOUDINARY_CLOUD
 val cloudinaryUploadPreset = propertyOrEnv("cloudinaryUploadPreset", "CLOUDINARY_UPLOAD_PRESET")
 require(debugNumber > 0) { "prereleaseNumber must be greater than zero" }
 require(betaNumber > 0) { "betaNumber must be greater than zero" }
-require(betaNumber <= 19) {
+require(betaNumber <= 18) {
     "Beta build number $betaNumber exceeds this version's Play Store slot range; bump versionName"
 }
 
 // Reserve 100 monotonically ordered Play Store version-code slots for each
-// semantic version: beta 80-98, trusted debug 98, and stable 99. A 100-code
+// semantic version: beta 80-97, trusted debug 98, and stable 99. A 100-code
 // migration offset moves betas above the 1.3.0 stable code (100300099)
 // already uploaded to Play. Keep this offset for future versions so
 // beta < debug < stable and upgrades to the next version remain ordered.
