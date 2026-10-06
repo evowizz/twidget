@@ -146,7 +146,7 @@ dependencies {
     implementation(libs.mlkit.genai.prompt)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.oneui.icons)
-    // Strictly pinned in the version catalog, see the SESL9 comment there.
+    // The version catalog pins these strictly. Its SESL9 note explains why.
     implementation(libs.bundles.sesl9)
     testImplementation(libs.junit)
     testImplementation(libs.org.json)

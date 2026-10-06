@@ -5,8 +5,10 @@ import org.gradle.api.JavaVersion
 import org.gradle.api.Project
 
 /**
- * Configure base Kotlin with Android options. Kotlin support is built into
- * AGP 9 and takes its JVM target from [CommonExtension.compileOptions].
+ * Sets the compile SDK, min SDK and Java version on [commonExtension].
+ *
+ * AGP 9's built-in Kotlin takes its JVM target from [CommonExtension.compileOptions], so this
+ * sets no Kotlin options.
  */
 internal fun Project.configureKotlinAndroid(
     commonExtension: CommonExtension,

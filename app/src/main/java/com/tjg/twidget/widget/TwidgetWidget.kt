@@ -92,7 +92,7 @@ open class TwidgetWidget : AppWidgetProvider() {
                 val responsiveBitmapBytes = mutableMapOf<SizeF, Long>()
                 var totalBitmapBytes = 0L
                 val bitmapBudget = remoteViewsBitmapBudget(context, REMOTE_VIEWS_BITMAP_BUDGET_BYTES)
-                // The renderer raises large layouts to at least 120dp per side.
+                // WidgetArtworkRenderer draws large layouts at least 120dp per side, so count that size.
                 val minArtworkPx = dp(context, 120)
 
                 fun addResponsiveView(key: SizeF, width: Int, height: Int, responsiveMode: Int) {

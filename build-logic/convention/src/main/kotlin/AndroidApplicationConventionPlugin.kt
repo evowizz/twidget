@@ -41,7 +41,7 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
     }
 }
 
-/** Samsung requires the installed package name in the theme metadata. */
+/** Adds the Samsung theme metadata for [variant], filled in with its installed package name. */
 private fun Project.addSamsungThemeMetadata(variant: ApplicationVariant) {
     val task = tasks.register<GenerateSamsungThemeMetadata>(variant.taskName("SamsungThemeMetadata")) {
         templateFile.set(layout.projectDirectory.file("src/main/theme/meta_998_sesl_app.xml"))
@@ -51,7 +51,7 @@ private fun Project.addSamsungThemeMetadata(variant: ApplicationVariant) {
     variant.sources.res?.addGeneratedSourceDirectory(task, GenerateSamsungThemeMetadata::outputDirectory)
 }
 
-/** Debug builds bundle the upcoming changelog so testers can see what changed. */
+/** Bundles the upcoming changelog into the debug [variant] so testers see what changed. */
 private fun Project.addDebugChangelog(variant: ApplicationVariant) {
     val task = tasks.register<GenerateDebugChangelog>(variant.taskName("Changelog")) {
         changelogFile.set(rootProject.layout.projectDirectory.file("CHANGELOG.md"))
@@ -60,6 +60,6 @@ private fun Project.addDebugChangelog(variant: ApplicationVariant) {
     variant.sources.assets?.addGeneratedSourceDirectory(task, GenerateDebugChangelog::outputDirectory)
 }
 
-/** For example `generateGithubDebugChangelog`. */
+/** Builds this variant's task name for [output], such as `generateGithubDebugChangelog`. */
 private fun ApplicationVariant.taskName(output: String): String =
     "generate${name.replaceFirstChar(Char::uppercaseChar)}$output"

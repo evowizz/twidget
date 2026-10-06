@@ -25,8 +25,8 @@ oneui-design = { module = "io.github.tribalfs:oneui-design", version.ref = "oneu
 oneui-icons = { module = "io.github.oneuiproject:icons", version.ref = "oneuiIcons" }
 org-json = { module = "org.json:json", version.ref = "orgJson" }
 
-# Pin the whole SESL9 family strictly: oneui-design and some SESL9 POMs still
-# request SESL8, whose numerically higher versions can otherwise win resolution.
+# Pin the whole SESL9 family strictly. oneui-design and some SESL9 POMs still
+# request SESL8, whose numerically higher versions would otherwise win resolution.
 sesl-appcompat = { module = "sesl.androidx.appcompat:appcompat", version = { strictly = "1.8.0+1.0.38-sesl9+rev0" } }
 sesl-coordinatorlayout = { module = "sesl.androidx.coordinatorlayout:coordinatorlayout", version = { strictly = "1.3.0+1.0.6-sesl9+rev0" } }
 sesl-core = { module = "sesl.androidx.core:core", version = { strictly = "1.19.0+1.0.29-sesl9+rev0" } }
@@ -72,5 +72,5 @@ sesl9 = [
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 
-# Plugins provided by build-logic
+# Plugins from build-logic
 twidget-android-application = { id = "twidget.android.application" }
