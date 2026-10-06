@@ -49,16 +49,6 @@ android {
         }
     }
 
-    flavorDimensions += "distribution"
-    productFlavors {
-        create("github") {
-            dimension = "distribution"
-        }
-        create("play") {
-            dimension = "distribution"
-        }
-    }
-
     defaultConfig {
         applicationId = "com.tjg.twidget"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

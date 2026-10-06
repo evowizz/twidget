@@ -4,6 +4,7 @@ import com.android.build.api.variant.ApplicationVariant
 import com.tjg.twidget.buildlogic.AppVersion
 import com.tjg.twidget.buildlogic.GenerateDebugChangelog
 import com.tjg.twidget.buildlogic.GenerateSamsungThemeMetadata
+import com.tjg.twidget.buildlogic.configureFlavors
 import com.tjg.twidget.buildlogic.configureKotlinAndroid
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -19,6 +20,7 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
 
             extensions.configure<ApplicationExtension> {
                 configureKotlinAndroid(this)
+                configureFlavors(this)
                 defaultConfig {
                     targetSdk { version = release(37) }
                     versionCode = appVersion.stableVersionCode
