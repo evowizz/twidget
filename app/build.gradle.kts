@@ -16,11 +16,6 @@ plugins {
     id("com.android.application")
 }
 
-// Optional isolated install for device testing; every build now uses SESL9.
-val sesl9Prototype = providers.gradleProperty("sesl9Prototype")
-    .map(String::toBooleanStrict)
-    .getOrElse(false)
-
 // Release signing config. Local production credentials live outside the
 // checkout by default, under ~/.config/twidget/keystore.properties. CI uses
 // RELEASE_* environment variables. Absent either, release builds stay
@@ -136,7 +131,7 @@ android {
     productFlavors {
         create("github") {
             dimension = "distribution"
-            buildConfigField("boolean", "IN_APP_UPDATES", (!sesl9Prototype).toString())
+            buildConfigField("boolean", "IN_APP_UPDATES", "true")
         }
         create("play") {
             dimension = "distribution"
@@ -146,17 +141,12 @@ android {
 
     defaultConfig {
         applicationId = "com.tjg.twidget"
-        if (sesl9Prototype) applicationIdSuffix = ".sesl9"
-        manifestPlaceholders["twidgetAppLabel"] = if (sesl9Prototype) "Twidget SESL9" else "@string/app_name"
-        // The hosted OAuth relay targets the staging app's scheme. Keep the prototype
-        // out of that route until it has a separately registered callback.
-        manifestPlaceholders["bufferOAuthEnabled"] = (!sesl9Prototype).toString()
         minSdk { version = release(26) }
         targetSdk { version = release(37) }
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         versionCode = stableVersionCode
         versionName = baseVersionName
-        resValue("string", "buffer_oauth_client_id", if (sesl9Prototype) "" else bufferOAuthClientId)
+        resValue("string", "buffer_oauth_client_id", bufferOAuthClientId)
         resValue("string", "cloudinary_cloud_name", cloudinaryCloudName)
         resValue("string", "cloudinary_upload_preset", cloudinaryUploadPreset)
         resValue(
@@ -191,7 +181,7 @@ android {
 
     buildTypes {
         debug {
-            versionNameSuffix = if (sesl9Prototype) "-sesl9.$debugNumber" else "-debug.$debugNumber"
+            versionNameSuffix = "-debug.$debugNumber"
             if (signDebugWithRelease) {
                 signingConfig = signingConfigs.getByName("release")
             }
@@ -262,11 +252,8 @@ abstract class GenerateSamsungThemeMetadata : DefaultTask() {
 }
 
 androidComponents {
-    beforeVariants(selector().all()) { variant ->
-        if (sesl9Prototype && variant.buildType != "debug") variant.enable = false
-    }
     onVariants(selector().all()) { variant ->
-        // Samsung requires the installed package, including any prototype suffix.
+        // Samsung requires the installed package name.
         val themeMetadata = tasks.register<GenerateSamsungThemeMetadata>(
             "generate${variant.name.replaceFirstChar(Char::uppercaseChar)}SamsungThemeMetadata",
         ) {
