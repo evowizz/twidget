@@ -113,7 +113,11 @@ require(versionMajor in 0..20 && stableVersionCode <= 2_100_000_000) {
 
 android {
     namespace = "com.tjg.twidget"
-    compileSdk = 37
+    compileSdk {
+        version = release(37) {
+            minorApiLevel = 2
+        }
+    }
 
     buildFeatures {
         buildConfig = true
@@ -147,8 +151,8 @@ android {
         // The hosted OAuth relay targets the staging app's scheme. Keep the prototype
         // out of that route until it has a separately registered callback.
         manifestPlaceholders["bufferOAuthEnabled"] = (!sesl9Prototype).toString()
-        minSdk = 26
-        targetSdk = 36
+        minSdk { version = release(26) }
+        targetSdk { version = release(37) }
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         versionCode = stableVersionCode
         versionName = baseVersionName
