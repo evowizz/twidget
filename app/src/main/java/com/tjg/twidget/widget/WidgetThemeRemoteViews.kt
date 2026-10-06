@@ -15,14 +15,9 @@ internal fun widgetArtworkVariants(settings: TwidgetWidgetSettings): Int =
     if (Build.VERSION.SDK_INT >= 31 && settings.colorMode == TwidgetStore.COLOR_MODE_SYSTEM) 2 else 1
 
 /**
- * Returns the bitmap memory budget for one [RemoteViews] update, at most [cap].
- *
- * Apps targeting API 37 crash when an update holds more [Bitmap] and [Icon] memory than
- * 1.5 x screen width x screen height x 4 bytes. The budget stays at three quarters of that
- * limit so the other views' bitmaps still fit.
- *
- * @param cap budget the widget would use without the platform limit, in bytes
- * @return budget in bytes
+ * Apps targeting API 37 crash when one [RemoteViews] update holds more bitmap memory than
+ * 1.5 x screen width x screen height x 4 bytes. Stay at three quarters of that so the other
+ * views' bitmaps fit too.
  */
 internal fun remoteViewsBitmapBudget(context: Context, cap: Long): Long {
     val metrics = context.resources.displayMetrics

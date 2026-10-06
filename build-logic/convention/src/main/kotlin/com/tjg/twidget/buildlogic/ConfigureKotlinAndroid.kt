@@ -4,12 +4,7 @@ import com.android.build.api.dsl.CommonExtension
 import org.gradle.api.JavaVersion
 import org.gradle.api.Project
 
-/**
- * Sets the compile SDK, min SDK and Java version on [commonExtension].
- *
- * AGP 9's built-in Kotlin takes its JVM target from [CommonExtension.compileOptions], so this
- * sets no Kotlin options.
- */
+/** AGP 9's built-in Kotlin takes its JVM target from compileOptions, so no Kotlin options are set. */
 internal fun Project.configureKotlinAndroid(
     commonExtension: CommonExtension,
 ) {

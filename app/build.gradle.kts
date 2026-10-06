@@ -12,7 +12,6 @@ android {
     namespace = "com.tjg.twidget"
 
     buildFeatures {
-        // Only for VERSION_NAME and VERSION_CODE. Flavor values live in env/BuildVars.kt.
         buildConfig = true
     }
 
@@ -98,7 +97,6 @@ dependencies {
     implementation(libs.mlkit.genai.prompt)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.oneui.icons)
-    // The version catalog pins these strictly. Its SESL9 note explains why.
     implementation(libs.bundles.sesl9)
     testImplementation(libs.junit)
     testImplementation(libs.org.json)

@@ -4,16 +4,9 @@ import org.gradle.api.Project
 import java.util.Properties
 
 /**
- * Version names and Play Store version codes for each build type.
- *
- * Both come from the base version in version.properties. Each semantic version reserves 100
- * ordered Play Store version-code slots:
- * - beta 80-97
- * - trusted debug 98
- * - stable 99
- *
- * A permanent 100-code offset moves betas above the 1.3.0 stable code (100300099) already
- * uploaded to Play. Keep it for future versions so beta < debug < stable and upgrades to the
+ * Each semantic version reserves 100 ordered Play Store version-code slots: beta 80-97, trusted
+ * debug 98 and stable 99. A permanent 100-code offset moves betas above the 1.3.0 stable code
+ * (100300099) already uploaded to Play. Keep it so beta < debug < stable and upgrades to the
  * next version stay ordered.
  */
 internal class AppVersion private constructor(
@@ -37,12 +30,6 @@ internal class AppVersion private constructor(
     }
 
     companion object {
-        /**
-         * Loads the version from version.properties and the `-P` number overrides.
-         *
-         * Fails the build when a value is not a number, is out of range, or can't fit a Play
-         * Store version code.
-         */
         fun load(project: Project): AppVersion = with(project) {
             val versionProperties = Properties().apply {
                 rootProject.file("version.properties").inputStream().use { load(it) }
@@ -75,16 +62,10 @@ internal class AppVersion private constructor(
             AppVersion(versionName, versionCodeBase, debugNumber, betaNumber)
         }
 
-        /** Reads Gradle property [name] as a number, or null when unset. Fails the build on other text. */
         private fun Project.intProperty(name: String): Int? = providers.gradleProperty(name).orNull?.let { value ->
             value.toIntOrNull() ?: error("-P$name must be a whole number, got \"$value\"")
         }
 
-        /**
-         * Counts the commits since version.properties last changed, plus one.
-         *
-         * Returns 1 when version.properties has uncommitted changes or git can't find its history.
-         */
         private fun Project.commitsSinceVersionChange(): Int {
             val versionFileStatus = git("status", "--porcelain", "--", "version.properties")
             val versionCommit = git("log", "-1", "--format=%H", "--", "version.properties")
@@ -95,13 +76,7 @@ internal class AppVersion private constructor(
                 .output.toIntOrNull()?.plus(1) ?: 1
         }
 
-        /**
-         * Runs `git` with [args] in the root project directory.
-         *
-         * Runs through [org.gradle.api.provider.ProviderFactory.exec], so the configuration cache
-         * tracks the output and reconfigures when it changes. Returns exit code -1 and empty
-         * output when git can't run.
-         */
+        // providers.exec lets the configuration cache track the output.
         private fun Project.git(vararg args: String): CommandResult = runCatching {
             val execution = providers.exec {
                 commandLine("git", *args)
