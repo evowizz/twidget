@@ -1,16 +1,5 @@
-import java.io.File
 import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.gradle.api.DefaultTask
-import org.gradle.api.file.DirectoryProperty
-import org.gradle.api.file.RegularFileProperty
-import org.gradle.api.provider.Property
-import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.InputFile
-import org.gradle.api.tasks.OutputDirectory
-import org.gradle.api.tasks.PathSensitive
-import org.gradle.api.tasks.PathSensitivity
-import org.gradle.api.tasks.TaskAction
 
 plugins {
     id("com.android.application")
@@ -78,15 +67,11 @@ val debugNumber = providers.gradleProperty("prereleaseNumber").orNull?.toIntOrNu
         }
     }
 val betaNumber = providers.gradleProperty("betaNumber").orNull?.toIntOrNull() ?: 1
-val bufferOAuthClientId = providers.gradleProperty("bufferOAuthClientId").orNull
-    ?: System.getenv("BUFFER_OAUTH_CLIENT_ID")
-    ?: ""
-val cloudinaryCloudName = providers.gradleProperty("cloudinaryCloudName").orNull
-    ?: System.getenv("CLOUDINARY_CLOUD_NAME")
-    ?: ""
-val cloudinaryUploadPreset = providers.gradleProperty("cloudinaryUploadPreset").orNull
-    ?: System.getenv("CLOUDINARY_UPLOAD_PRESET")
-    ?: ""
+fun propertyOrEnv(propKey: String, envKey: String): String =
+    providers.gradleProperty(propKey).orElse(providers.environmentVariable(envKey)).getOrElse("")
+val bufferOAuthClientId = propertyOrEnv("bufferOAuthClientId", "BUFFER_OAUTH_CLIENT_ID")
+val cloudinaryCloudName = propertyOrEnv("cloudinaryCloudName", "CLOUDINARY_CLOUD_NAME")
+val cloudinaryUploadPreset = propertyOrEnv("cloudinaryUploadPreset", "CLOUDINARY_UPLOAD_PRESET")
 require(debugNumber > 0) { "prereleaseNumber must be greater than zero" }
 require(betaNumber > 0) { "betaNumber must be greater than zero" }
 require(betaNumber <= 19) {
@@ -94,10 +79,10 @@ require(betaNumber <= 19) {
 }
 
 // Reserve 100 monotonically ordered Play Store version-code slots for each
-// semantic version: beta 80-98, trusted debug 98, and stable 99. The layout
-// A 100-code migration offset moves betas above the 1.3.0 stable code
-// (100300099) already uploaded to Play. Keep this offset for future versions
-// so beta < debug < stable and upgrades to the next version remain ordered.
+// semantic version: beta 80-98, trusted debug 98, and stable 99. A 100-code
+// migration offset moves betas above the 1.3.0 stable code (100300099)
+// already uploaded to Play. Keep this offset for future versions so
+// beta < debug < stable and upgrades to the next version remain ordered.
 // Validate the final value against Play's 2,100,000,000 ceiling.
 val versionCodeBase =
     versionMajor * 100_000_000 + versionMinor * 100_000 + versionPatch * 100 + 100
@@ -205,7 +190,6 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-
 }
 
 kotlin {
@@ -253,10 +237,9 @@ abstract class GenerateSamsungThemeMetadata : DefaultTask() {
 
 androidComponents {
     onVariants(selector().all()) { variant ->
+        val taskVariantName = variant.name.replaceFirstChar(Char::uppercaseChar)
         // Samsung requires the installed package name.
-        val themeMetadata = tasks.register<GenerateSamsungThemeMetadata>(
-            "generate${variant.name.replaceFirstChar(Char::uppercaseChar)}SamsungThemeMetadata",
-        ) {
+        val themeMetadata = tasks.register<GenerateSamsungThemeMetadata>("generate${taskVariantName}SamsungThemeMetadata") {
             templateFile.set(layout.projectDirectory.file("src/main/theme/meta_998_sesl_app.xml"))
             applicationId.set(variant.applicationId)
             outputDirectory.set(layout.buildDirectory.dir("generated/${variant.name}SamsungThemeMetadata/res"))
@@ -271,7 +254,7 @@ androidComponents {
             output.versionCode.set(versionCode)
         }
         if (variant.buildType == "debug") {
-            val changelog = tasks.register<GenerateDebugChangelog>("generate${variant.name.replaceFirstChar(Char::uppercaseChar)}Changelog") {
+            val changelog = tasks.register<GenerateDebugChangelog>("generate${taskVariantName}Changelog") {
                 changelogFile.set(rootProject.layout.projectDirectory.file("CHANGELOG.md"))
                 outputDirectory.set(layout.buildDirectory.dir("generated/${variant.name}Changelog/assets"))
             }
