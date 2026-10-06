@@ -1,6 +1,7 @@
 import com.android.build.api.dsl.ApplicationExtension
 import com.android.build.api.variant.ApplicationAndroidComponentsExtension
 import com.android.build.api.variant.ApplicationVariant
+import com.tjg.twidget.buildlogic.AppVersion
 import com.tjg.twidget.buildlogic.GenerateDebugChangelog
 import com.tjg.twidget.buildlogic.GenerateSamsungThemeMetadata
 import com.tjg.twidget.buildlogic.configureKotlinAndroid
@@ -14,13 +15,22 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
         with(target) {
             apply(plugin = "com.android.application")
+            val appVersion = AppVersion.load(this)
 
             extensions.configure<ApplicationExtension> {
                 configureKotlinAndroid(this)
-                defaultConfig.targetSdk { version = release(37) }
+                defaultConfig {
+                    targetSdk { version = release(37) }
+                    versionCode = appVersion.stableVersionCode
+                    versionName = appVersion.versionName
+                }
             }
             extensions.configure<ApplicationAndroidComponentsExtension> {
                 onVariants { variant ->
+                    variant.outputs.forEach { output ->
+                        output.versionName.set(appVersion.versionNameFor(variant.buildType))
+                        output.versionCode.set(appVersion.versionCodeFor(variant.buildType))
+                    }
                     addSamsungThemeMetadata(variant)
                     if (variant.buildType == "debug") {
                         addDebugChangelog(variant)
