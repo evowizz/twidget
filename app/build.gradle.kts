@@ -36,6 +36,7 @@ android {
     namespace = "com.tjg.twidget"
 
     buildFeatures {
+        // Only for VERSION_NAME and VERSION_CODE. Flavor values live in env/BuildVars.kt.
         buildConfig = true
         resValues = true
     }
@@ -52,11 +53,9 @@ android {
     productFlavors {
         create("github") {
             dimension = "distribution"
-            buildConfigField("boolean", "IN_APP_UPDATES", "true")
         }
         create("play") {
             dimension = "distribution"
-            buildConfigField("boolean", "IN_APP_UPDATES", "false")
         }
     }
 
