@@ -204,11 +204,6 @@ android {
             initWith(getByName("release"))
             versionNameSuffix = "-beta.$betaNumber"
             matchingFallbacks += listOf("release")
-            isMinifyEnabled = true
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro",
-            )
         }
     }
 
