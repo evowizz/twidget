@@ -83,9 +83,10 @@ class TwidgetBriefWidget : AppWidgetProvider() {
             val views = linkedMapOf<SizeF, RemoteViews>()
             var bytes = 0L
             val variants = widgetArtworkVariants(TwidgetStore.widgetSettings(context, id))
+            val budget = remoteViewsBitmapBudget(context, BITMAP_BUDGET)
             fun add(key: SizeF, width: Int, height: Int) {
                 val cost = dp(context, width).toLong() * dp(context, height).toLong() * 4L * variants
-                if (bytes + cost > BITMAP_BUDGET || views.containsKey(key)) return
+                if (bytes + cost > budget || views.containsKey(key)) return
                 views[key] = createViews(context, id, width, height, account, snapshot)
                 bytes += cost
             }

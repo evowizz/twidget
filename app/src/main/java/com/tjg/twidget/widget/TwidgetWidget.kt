@@ -91,11 +91,15 @@ open class TwidgetWidget : AppWidgetProvider() {
                 val responsiveViews = linkedMapOf<SizeF, RemoteViews>()
                 val responsiveBitmapBytes = mutableMapOf<SizeF, Long>()
                 var totalBitmapBytes = 0L
+                val bitmapBudget = remoteViewsBitmapBudget(context, REMOTE_VIEWS_BITMAP_BUDGET_BYTES)
+                // The renderer raises large layouts to at least 120dp per side.
+                val minArtworkPx = dp(context, 120)
 
                 fun addResponsiveView(key: SizeF, width: Int, height: Int, responsiveMode: Int) {
-                    val bitmapBytes = dp(context, width).toLong() * dp(context, height).toLong() * 4L * widgetArtworkVariants(widgetSettings)
+                    val bitmapBytes = dp(context, width).coerceAtLeast(minArtworkPx).toLong() *
+                        dp(context, height).coerceAtLeast(minArtworkPx).toLong() * 4L * widgetArtworkVariants(widgetSettings)
                     val replacedBytes = responsiveBitmapBytes[key] ?: 0L
-                    if (totalBitmapBytes - replacedBytes + bitmapBytes > REMOTE_VIEWS_BITMAP_BUDGET_BYTES) return
+                    if (totalBitmapBytes - replacedBytes + bitmapBytes > bitmapBudget) return
                     responsiveViews[key] = createRemoteViews(
                         context = context,
                         appWidgetId = appWidgetId,

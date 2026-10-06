@@ -14,6 +14,17 @@ import com.tjg.twidget.data.TwidgetWidgetSettings
 internal fun widgetArtworkVariants(settings: TwidgetWidgetSettings): Int =
     if (Build.VERSION.SDK_INT >= 31 && settings.colorMode == TwidgetStore.COLOR_MODE_SYSTEM) 2 else 1
 
+/**
+ * Apps targeting API 37 crash when a RemoteViews update holds more bitmap and
+ * Icon memory than 1.5 x screen width x screen height x 4 bytes. Stay at three
+ * quarters of that so the remaining views' bitmaps fit too.
+ */
+internal fun remoteViewsBitmapBudget(context: Context, cap: Long): Long {
+    val metrics = context.resources.displayMetrics
+    val platformLimit = metrics.widthPixels.toLong() * metrics.heightPixels * 4L * 3L / 2L
+    return minOf(cap, platformLimit * 3L / 4L)
+}
+
 internal fun RemoteViews.setWidgetArtwork(
     viewId: Int,
     settings: TwidgetWidgetSettings,
