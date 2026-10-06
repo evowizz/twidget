@@ -54,7 +54,10 @@ fun git(vararg args: String): CommandResult = runCatching {
 // fixed slot above every beta, allowing trusted debug APKs to replace betas.
 // Beta releases have their own sequence, supplied by the pre-release workflow,
 // and reset to 1 for each base version.
-val debugNumber = providers.gradleProperty("prereleaseNumber").orNull?.toIntOrNull()
+fun intProperty(name: String): Int? = providers.gradleProperty(name).orNull?.let { value ->
+    value.toIntOrNull() ?: error("-P$name must be a whole number, got \"$value\"")
+}
+val debugNumber = intProperty("prereleaseNumber")
     ?: run {
         val versionFileStatus = git("status", "--porcelain", "--", "version.properties")
         val versionCommit = git("log", "-1", "--format=%H", "--", "version.properties")
@@ -65,7 +68,7 @@ val debugNumber = providers.gradleProperty("prereleaseNumber").orNull?.toIntOrNu
                 .output.toIntOrNull()?.plus(1) ?: 1
         }
     }
-val betaNumber = providers.gradleProperty("betaNumber").orNull?.toIntOrNull() ?: 1
+val betaNumber = intProperty("betaNumber") ?: 1
 fun propertyOrEnv(propKey: String, envKey: String): String =
     providers.gradleProperty(propKey).orElse(providers.environmentVariable(envKey)).getOrElse("")
 val bufferOAuthClientId = propertyOrEnv("bufferOAuthClientId", "BUFFER_OAUTH_CLIENT_ID")
