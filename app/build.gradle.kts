@@ -56,12 +56,14 @@ require(versionMinor < 1_000 && versionPatch < 1_000) {
 
 data class CommandResult(val exitCode: Int, val output: String)
 
+// Configuration-cache safe: Gradle tracks the output and reconfigures when it changes.
 fun git(vararg args: String): CommandResult = runCatching {
-    val process = ProcessBuilder(listOf("git", *args))
-        .directory(rootProject.projectDir)
-        .redirectErrorStream(true)
-        .start()
-    CommandResult(process.waitFor(), process.inputStream.bufferedReader().use { it.readText().trim() })
+    val execution = providers.exec {
+        commandLine("git", *args)
+        workingDir = rootProject.projectDir
+        isIgnoreExitValue = true
+    }
+    CommandResult(execution.result.get().exitValue, execution.standardOutput.asText.get().trim())
 }.getOrElse { CommandResult(-1, "") }
 
 // Debug builds use the commit distance from the base-version change in their
