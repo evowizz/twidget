@@ -1,30 +1,12 @@
-import java.util.Properties
+import com.tjg.twidget.buildlogic.loadReleaseKey
+import com.tjg.twidget.buildlogic.shouldSignDebugWithRelease
 
 plugins {
     alias(libs.plugins.twidget.android.application)
 }
 
-// Release signing config. Local production credentials live outside the
-// checkout by default, under ~/.config/twidget/keystore.properties. CI uses
-// RELEASE_* environment variables. Absent either, release builds stay
-// unsigned and debug builds keep using the checked-in debug key.
-val signingPropertiesFile = providers.gradleProperty("twidgetSigningProperties")
-    .orNull
-    ?.let { rootProject.file(it) }
-    ?: File(System.getProperty("user.home"), ".config/twidget/keystore.properties")
-val keystoreProperties = Properties().apply {
-    signingPropertiesFile.takeIf { it.isFile }?.inputStream()?.use { load(it) }
-}
-fun signingValue(propKey: String, envKey: String): String? =
-    keystoreProperties.getProperty(propKey) ?: System.getenv(envKey)
-val releaseStoreFile: String? = signingValue("storeFile", "RELEASE_STORE_FILE")
-val signDebugWithRelease = providers.gradleProperty("signDebugWithRelease")
-    .orNull
-    ?.toBooleanStrictOrNull()
-    ?: false
-require(!signDebugWithRelease || releaseStoreFile != null) {
-    "-PsignDebugWithRelease=true requires the release signing credentials"
-}
+val releaseKey = loadReleaseKey()
+val signDebugWithRelease = shouldSignDebugWithRelease(releaseKey)
 
 android {
     namespace = "com.tjg.twidget"
@@ -58,14 +40,12 @@ android {
             keyAlias = "androiddebugkey"
             keyPassword = "android"
         }
-        if (releaseStoreFile != null) {
+        if (releaseKey != null) {
             create("release") {
-                storeFile = File(releaseStoreFile).let { path ->
-                    if (path.isAbsolute) path else signingPropertiesFile.parentFile.resolve(path)
-                }
-                storePassword = signingValue("storePassword", "RELEASE_STORE_PASSWORD")
-                keyAlias = signingValue("keyAlias", "RELEASE_KEY_ALIAS")
-                keyPassword = signingValue("keyPassword", "RELEASE_KEY_PASSWORD")
+                storeFile = releaseKey.storeFile
+                storePassword = releaseKey.storePassword
+                keyAlias = releaseKey.keyAlias
+                keyPassword = releaseKey.keyPassword
             }
         }
     }
@@ -82,6 +62,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            // Null without a release key, so release builds are unsigned.
             signingConfig = signingConfigs.findByName("release")
         }
         create("beta") {
