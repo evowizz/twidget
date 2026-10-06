@@ -1,7 +1,7 @@
 import java.util.Properties
 
 plugins {
-    id("com.android.application")
+    alias(libs.plugins.twidget.android.application)
 }
 
 // Release signing config. Local production credentials live outside the
@@ -191,53 +191,8 @@ android {
     }
 }
 
-abstract class GenerateDebugChangelog : DefaultTask() {
-    @get:InputFile
-    @get:PathSensitive(PathSensitivity.RELATIVE)
-    abstract val changelogFile: RegularFileProperty
-
-    @get:OutputDirectory
-    abstract val outputDirectory: DirectoryProperty
-
-    @TaskAction
-    fun generate() {
-        val directory = outputDirectory.get().asFile
-        directory.mkdirs()
-        changelogFile.get().asFile.copyTo(directory.resolve("upcoming-changelog.md"), overwrite = true)
-    }
-}
-
-abstract class GenerateSamsungThemeMetadata : DefaultTask() {
-    @get:InputFile
-    @get:PathSensitive(PathSensitivity.RELATIVE)
-    abstract val templateFile: RegularFileProperty
-
-    @get:Input
-    abstract val applicationId: Property<String>
-
-    @get:OutputDirectory
-    abstract val outputDirectory: DirectoryProperty
-
-    @TaskAction
-    fun generate() {
-        val xmlDirectory = outputDirectory.get().asFile.resolve("xml")
-        xmlDirectory.mkdirs()
-        xmlDirectory.resolve("meta_998_sesl_app.xml").writeText(
-            templateFile.get().asFile.readText().replace("@APPLICATION_ID@", applicationId.get()),
-        )
-    }
-}
-
 androidComponents {
     onVariants(selector().all()) { variant ->
-        val taskVariantName = variant.name.replaceFirstChar(Char::uppercaseChar)
-        // Samsung requires the installed package name.
-        val themeMetadata = tasks.register<GenerateSamsungThemeMetadata>("generate${taskVariantName}SamsungThemeMetadata") {
-            templateFile.set(layout.projectDirectory.file("src/main/theme/meta_998_sesl_app.xml"))
-            applicationId.set(variant.applicationId)
-            outputDirectory.set(layout.buildDirectory.dir("generated/${variant.name}SamsungThemeMetadata/res"))
-        }
-        variant.sources.res?.addGeneratedSourceDirectory(themeMetadata, GenerateSamsungThemeMetadata::outputDirectory)
         val versionCode = when (variant.buildType) {
             "debug" -> versionCodeBase + 98
             "beta" -> versionCodeBase + 79 + betaNumber
@@ -245,13 +200,6 @@ androidComponents {
         }
         variant.outputs.forEach { output ->
             output.versionCode.set(versionCode)
-        }
-        if (variant.buildType == "debug") {
-            val changelog = tasks.register<GenerateDebugChangelog>("generate${taskVariantName}Changelog") {
-                changelogFile.set(rootProject.layout.projectDirectory.file("CHANGELOG.md"))
-                outputDirectory.set(layout.buildDirectory.dir("generated/${variant.name}Changelog/assets"))
-            }
-            variant.sources.assets?.addGeneratedSourceDirectory(changelog, GenerateDebugChangelog::outputDirectory)
         }
     }
 }

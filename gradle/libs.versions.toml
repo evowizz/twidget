@@ -45,6 +45,9 @@ sesl-swiperefreshlayout = { module = "sesl.androidx.swiperefreshlayout:swiperefr
 sesl-viewpager = { module = "sesl.androidx.viewpager:viewpager", version = { strictly = "1.1.0-beta01+1.0.1-sesl9+rev0" } }
 sesl-viewpager2 = { module = "sesl.androidx.viewpager2:viewpager2", version = { strictly = "1.1.0+1.0.5-sesl9+rev0" } }
 
+# Build logic
+android-gradlePlugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }
+
 [bundles]
 sesl9 = [
     "sesl-appcompat",
@@ -68,3 +71,6 @@ sesl9 = [
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
+
+# Plugins provided by build-logic
+twidget-android-application = { id = "twidget.android.application" }
