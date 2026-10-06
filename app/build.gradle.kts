@@ -92,11 +92,6 @@ require(versionMajor in 0..20 && stableVersionCode <= 2_100_000_000) {
 
 android {
     namespace = "com.tjg.twidget"
-    compileSdk {
-        version = release(37) {
-            minorApiLevel = 2
-        }
-    }
 
     buildFeatures {
         buildConfig = true
@@ -125,8 +120,6 @@ android {
 
     defaultConfig {
         applicationId = "com.tjg.twidget"
-        minSdk { version = release(26) }
-        targetSdk { version = release(37) }
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         versionCode = stableVersionCode
         versionName = baseVersionName
@@ -183,11 +176,6 @@ android {
             versionNameSuffix = "-beta.$betaNumber"
             matchingFallbacks += listOf("release")
         }
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
     }
 }
 

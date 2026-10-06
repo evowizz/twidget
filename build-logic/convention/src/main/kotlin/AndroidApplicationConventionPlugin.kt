@@ -1,7 +1,9 @@
+import com.android.build.api.dsl.ApplicationExtension
 import com.android.build.api.variant.ApplicationAndroidComponentsExtension
 import com.android.build.api.variant.ApplicationVariant
 import com.tjg.twidget.buildlogic.GenerateDebugChangelog
 import com.tjg.twidget.buildlogic.GenerateSamsungThemeMetadata
+import com.tjg.twidget.buildlogic.configureKotlinAndroid
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.apply
@@ -13,6 +15,10 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
         with(target) {
             apply(plugin = "com.android.application")
 
+            extensions.configure<ApplicationExtension> {
+                configureKotlinAndroid(this)
+                defaultConfig.targetSdk { version = release(37) }
+            }
             extensions.configure<ApplicationAndroidComponentsExtension> {
                 onVariants { variant ->
                     addSamsungThemeMetadata(variant)
