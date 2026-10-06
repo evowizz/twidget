@@ -27,7 +27,11 @@ internal fun Project.configureResValues() {
             )
             variant.putString(
                 name = "buffer_oauth_redirect_uri",
-                value = providers.provider { DEFAULT_BUFFER_OAUTH_REDIRECT_URI },
+                value = propertyOrEnv(
+                    gradleProperty = "bufferOAuthRedirectUri",
+                    environmentVariable = "BUFFER_OAUTH_REDIRECT_URI",
+                    default = DEFAULT_BUFFER_OAUTH_REDIRECT_URI,
+                ),
             )
             variant.putString(
                 name = "cloudinary_cloud_name",
