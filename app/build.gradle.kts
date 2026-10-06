@@ -36,9 +36,6 @@ android {
         // version suffix.
         getByName("debug") {
             storeFile = file("debug.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
         }
         if (releaseKey != null) {
             create("release") {
