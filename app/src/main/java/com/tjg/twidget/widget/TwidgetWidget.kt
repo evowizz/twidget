@@ -204,6 +204,9 @@ open class TwidgetWidget : AppWidgetProvider() {
                 // keeps the VISIBLE state a tap-refresh partial update set, so
                 // relying on the layout's gone default leaves it stuck spinning.
                 setViewVisibility(R.id.widget_loading, View.GONE)
+                // Every host, including Samsung, must fit both light/dark images in one update.
+                val artworkBudget = remoteViewsBitmapBudget(context, REMOTE_VIEWS_BITMAP_BUDGET_BYTES) /
+                    widgetArtworkVariants(widgetSettings)
                 setWidgetArtwork(R.id.widget_artwork, widgetSettings) { artworkDark ->
                     WidgetArtworkRenderer.render(
                         context = context,
@@ -215,6 +218,7 @@ open class TwidgetWidget : AppWidgetProvider() {
                         dark = artworkDark,
                         delta = delta,
                         drawBackground = drawArtworkBackground,
+                        bitmapBudgetBytes = artworkBudget,
                     )
                 }
                 setOnClickPendingIntent(android.R.id.background, tapIntent(context, appWidgetId, widgetSettings.tapAction, account))

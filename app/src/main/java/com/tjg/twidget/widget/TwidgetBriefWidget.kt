@@ -133,6 +133,7 @@ class TwidgetBriefWidget : AppWidgetProvider() {
                 } else {
                     setInt(android.R.id.background, "setBackgroundColor", Color.TRANSPARENT)
                 }
+                val artworkBudget = remoteViewsBitmapBudget(context, BITMAP_BUDGET) / widgetArtworkVariants(settings)
                 setWidgetArtwork(R.id.brief_widget_artwork, settings) { artworkDark ->
                     BriefWidgetArtworkRenderer.render(
                         context = localizedContext,
@@ -145,6 +146,7 @@ class TwidgetBriefWidget : AppWidgetProvider() {
                         fontFamily = settings.fontFamily,
                         style = settings.style,
                         background = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) backgroundColor else null,
+                        bitmapBudgetBytes = artworkBudget,
                     )
                 }
                 setContentDescription(

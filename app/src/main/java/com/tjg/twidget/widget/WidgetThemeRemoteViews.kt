@@ -3,6 +3,7 @@ package com.tjg.twidget.widget
 import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.drawable.Icon
 import android.os.Build
 import android.widget.RemoteViews
@@ -57,4 +58,14 @@ internal fun widgetSizeOptionsMatch(first: android.os.Bundle, second: android.os
     return keys.all { first.getInt(it) == second.getInt(it) } &&
         first.getParcelableArrayList<android.util.SizeF>(android.appwidget.AppWidgetManager.OPTION_APPWIDGET_SIZES) ==
         second.getParcelableArrayList<android.util.SizeF>(android.appwidget.AppWidgetManager.OPTION_APPWIDGET_SIZES)
+}
+
+/** Scale the canvas so text, spacing and layout selection still use the requested widget size. */
+internal fun widgetArtworkSurface(width: Int, height: Int, budgetBytes: Long): Pair<Bitmap, Canvas> {
+    val size = widgetBitmapSize(width, height, budgetBytes)
+    val bitmap = Bitmap.createBitmap(size.width, size.height, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap).apply {
+        scale(size.width.toFloat() / width, size.height.toFloat() / height)
+    }
+    return bitmap to canvas
 }
